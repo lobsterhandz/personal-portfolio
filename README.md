@@ -34,6 +34,17 @@ The live version of the website is hosted on **GitHub Pages**, and you can check
 - **Interactive Starry Universe**: Let’s make exploration literal—stars that sparkle on hover and reveal hidden pieces of my story.
 - **Advanced AI Integration**: Show off the **AI Seed** project in an interactive manner, inviting users to “grow” their own AI ideas alongside mine.
 - **Dynamic Data Visualization**: For my physics projects, I want to show data dynamically, allowing users to interact with the results as they come to life.
+<!-- README.md -->
+# Jose's Personal Portfolio
+
+Welcome to my personal portfolio! This site showcases my projects, skills, and contact information. You can explore the entire site live at the following link:
+
+[Visit My Portfolio](https://lobsterhandz.github.io/personal-portfolio/)
+
+### Deployment
+This website is hosted using GitHub Pages at: [https://lobsterhandz.github.io/personal-portfolio/](https://lobsterhandz.github.io/personal-portfolio/).
+
+Feel free to reach out if you have any questions or would like to collaborate!
 
 ## Contact
 
