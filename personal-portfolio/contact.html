@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="css/styles.css">
+    <title>Contact | Jose's Personal Portfolio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <!-- Header -->
+    <header>
+        <nav class="navbar">
+            <ul class="nav-links">
+                <li><a href="index.html">Home</a></li>
+                <li><a href="about.html">About</a></li>
+                <li><a href="projects.html">Projects</a></li>
+                <li><a href="skills.html">Skills</a></li>
+                <li><a href="contact.html" class="active">Contact</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <h1 class="neon-text">Get In Touch</h1>
+        <div class="contact-form-wrapper">
+            <form action="https://formspree.io/f/xldelawd" method="POST" class="contact-form">
+                <label for="name">Your Name</label>
+                <input type="text" id="name" name="name" required>
+
+                <label for="email">Your Email</label>
+                <input type="email" id="email" name="email" required>
+
+                <label for="message">Your Message</label>
+                <textarea id="message" name="message" rows="6" required></textarea>
+
+                <button type="submit" class="send-button">Send Message</button>
+            </form>
+        </div>
+        <div class="contact-links">
+            <h3>Or find me on social media:</h3>
+            <div class="footer-icons">
+                <a href="https://www.linkedin.com/in/jose-murillo-25094b31"><img src="assets/linkedin-icon.png" alt="LinkedIn"></a>
+                <a href="https://github.com/Lobsterhandz"><img src="assets/github-icon.png" alt="GitHub"></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer style="background-color: #2b2b2b; color: #ffffff; padding: 2rem 0;">
+        <div class="footer-content" style="text-align: center;">
+            <p>© 2024 Jose Murillo. All Rights Reserved.</p>
+            <div class="footer-icons" style="margin-top: 1rem;">
+                <a href="https://www.linkedin.com/in/jose-murillo-25094b31" target="_blank" rel="noopener noreferrer">
+                    <img src="assets/linkedin-icon.png" alt="LinkedIn" style="width: 24px; height: 24px; margin: 0 10px;">
+                </a>
+                <a href="https://github.com/Lobsterhandz" target="_blank" rel="noopener noreferrer">
+                    <img src="assets/github-icon.png" alt="GitHub" style="width: 24px; height: 24px; margin: 0 10px;">
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+
+</html>
