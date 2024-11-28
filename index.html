@@ -7,42 +7,11 @@
     <link rel="stylesheet" href="css/styles.css">
     <title>Home | Jose's Personal Portfolio</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-<style>
-        .hero-image {
-            width: 100%;
-            height: auto;
-            object-fit: cover;
-            border-bottom: 4px solid #58a6ff;
-            margin-bottom: 2rem;
-        }
-    </style>
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            const rssUrl = 'https://api.rss2json.com/v1/api.json?rss_url=https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml';
-            fetch(rssUrl)
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById("rss-container");
-                    if (data.items) {
-                        data.items.slice(0, 5).forEach(item => {
-                            const article = document.createElement("div");
-                            article.classList.add("rss-article");
-                            article.innerHTML = `
-                                <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
-                                <p>${item.description}</p>
-                            `;
-                            container.appendChild(article);
-                        });
-                    }
-                })
-                .catch(error => console.error("Error fetching RSS feed:", error));
-        });
-    </script>
-    </head>
+</head>
 
 <body>
     <!-- Header -->
-    <header style="position: relative; z-index: 10;">
+    <header>
         <nav class="navbar">
             <ul class="nav-links">
                 <li><a href="index.html" class="active">Home</a></li>
@@ -53,42 +22,63 @@
             </ul>
         </nav>
     </header>
-
     <!-- Hero Section -->
-    <section id="hero" class="hero-section" style="position: relative; z-index: 1;">
-        <img src="assets/hero-banner-2.jpg" alt="Professional Banner" class="hero-image">
-        
-        <div class="hero-content" style="margin-top: 2rem; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; color: #ffffff; background: rgba(0, 0, 0, 0.5); padding: 2rem; border-radius: 10px;">
+    <section id="hero" class="hero-section">
+        <div class="hero-content">
             <h1 class="neon-text">Welcome to My Digital Space</h1>
-            <p>Hi, I'm Jose. A passionate full-stack developer and tech enthusiast, exploring the world of AI and electronics to create futuristic solutions.</p>
-            <a href="projects.html" class="btn explore-button" style="margin-top: 20px; display: inline-block;">Explore My Work</a>
+            <p>
+                Hi, I'm Jose. A passionate full-stack developer and tech enthusiast, exploring the world of AI and electronics to create futuristic solutions.
+            </p>
+            <a href="projects.html" class="btn explore-button">Explore My Work</a>
         </div>
-        <div class="ufo-container">
-            <div class="ufo">
-                <div class="ufo-body"></div>
-                <div class="ufo-light"></div>
+    </section>
+    
+    <!-- About Preview Section -->
+    <section id="about-preview" class="preview-section">
+        <h2>About Me</h2>
+        <p>
+            I'm a lifelong learner dedicated to exploring new technologies. Whether it's designing web applications, experimenting with AI models, or diving into theoretical physics, I thrive on challenging the status quo.
+        </p>
+        <a href="about.html" class="btn">Learn More About Me</a>
+    </section>
+
+    <!-- Projects Preview Section -->
+    <section id="projects-preview" class="preview-section">
+        <h2>Highlighted Projects</h2>
+        <div class="preview-grid">
+            <div class="preview-card">
+                <img src="assets/project1.jpg" alt="Project 1">
+                <h3>Responsive Web Design</h3>
+                <p>A sleek, fully responsive website with a futuristic theme.</p>
+                <a href="projects.html" class="btn">View Projects</a>
+            </div>
+            <div class="preview-card">
+                <img src="assets/project2.jpg" alt="Project 2">
+                <h3>AI Chatbot Integration</h3>
+                <p>An AI-driven chatbot that leverages machine learning for real-time support.</p>
+                <a href="projects.html" class="btn">View Projects</a>
             </div>
         </div>
     </section>
 
-    <!-- Contact Preview Section -->
-    <section id="rss-feed" class="rss-feed" style="margin-top: 4rem;">
+    <!-- RSS Feed Section -->
+    <section id="rss-feed" class="rss-feed">
         <h2>Related Articles</h2>
         <div id="rss-container">
-            <!-- RSS feed will be populated here -->
+            <!-- RSS feed will be dynamically populated -->
         </div>
     </section>
 
     <!-- Footer -->
-    <footer style="background-color: #2b2b2b; color: #ffffff; padding: 2rem 0;">
-        <div class="footer-content" style="text-align: center;">
+    <footer>
+        <div class="footer-content">
             <p>© 2024 Jose Murillo. All Rights Reserved.</p>
-            <div class="footer-icons" style="margin-top: 1rem;">
+            <div class="footer-icons">
                 <a href="https://www.linkedin.com/in/jose-murillo-25094b31" target="_blank" rel="noopener noreferrer">
-                    <img src="assets/linkedin-icon.png" alt="LinkedIn" style="width: 24px; height: 24px; margin: 0 10px;">
+                    <img src="assets/linkedin-icon.png" alt="LinkedIn">
                 </a>
                 <a href="https://github.com/Lobsterhandz" target="_blank" rel="noopener noreferrer">
-                    <img src="assets/github-icon.png" alt="GitHub" style="width: 24px; height: 24px; margin: 0 10px;">
+                    <img src="assets/github-icon.png" alt="GitHub">
                 </a>
             </div>
         </div>
@@ -96,4 +86,3 @@
 </body>
 
 </html>
-
