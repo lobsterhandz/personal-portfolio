@@ -1,6 +1,6 @@
 // Interactive 3D Galaxy with Clickable Stars, Nebula Background & Effects (Three.js)
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
-import { TWEEN } from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.esm.js';
+import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js';
 
 // Scene Setup
 const scene = new THREE.Scene();
