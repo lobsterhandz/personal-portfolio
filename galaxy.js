@@ -135,27 +135,31 @@ document.addEventListener('click', (event) => {
 });
 
 function flyToStar(star) {
-  // Focus on the star.
+  // Lock the OrbitControls target to the star's position.
   controls.target.copy(star.position);
+  controls.update();
 
-  // Compute a normalized direction from the camera to the star.
-  const direction = star.position.clone().sub(camera.position).normalize();
-
-  // Choose a desired distance from the star (adjust as needed).
+  // Calculate a direction vector from the star to the current camera position.
+  const direction = camera.position.clone().sub(star.position).normalize();
+  // Set your desired distance from the star (adjust as needed)
   const desiredDistance = 2;
-  
-  // Position the camera so that the star is exactly desiredDistance in front.
-  // By subtracting the direction vector, the camera moves to the opposite side,
-  // ensuring the star ends up in the center of the view.
-  const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
-  
+  // Compute the new camera position so it sits desiredDistance away from the star.
+  const newCameraPos = star.position.clone().add(direction.multiplyScalar(desiredDistance));
+
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => controls.update())
-    .onComplete(() => showProjectDetails(star.userData))
+    .onUpdate(() => {
+      // Ensure the controls target remains locked on the star.
+      controls.target.copy(star.position);
+      controls.update();
+    })
+    .onComplete(() => {
+      showProjectDetails(star.userData);
+    })
     .start();
 }
+
 
 // --- Display Project Details ---
 function showProjectDetails(data) {
