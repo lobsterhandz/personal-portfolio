@@ -1,8 +1,18 @@
 // galaxy.js
+
+// === Imports ===
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
 
-// --- Scene Setup ---
+// Post-processing imports
+import { EffectComposer } from 'https://threejs.org/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'https://threejs.org/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'https://threejs.org/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+// Lens flare imports
+import { Lensflare, LensflareElement } from 'https://threejs.org/examples/jsm/objects/Lensflare.js';
+
+// === Scene Setup ===
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75, window.innerWidth / window.innerHeight, 0.1, 1000
@@ -11,12 +21,29 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- OrbitControls Setup ---
+// === Post-Processing Setup (Bloom) ===
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const bloomParams = {
+  exposure: 1,
+  bloomStrength: 1.5,
+  bloomThreshold: 0,
+  bloomRadius: 0
+};
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  bloomParams.bloomStrength,
+  bloomParams.bloomRadius,
+  bloomParams.bloomThreshold
+);
+composer.addPass(bloomPass);
+
+// === OrbitControls Setup ===
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// --- Background Setup ---
+// === Background Setup ===
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load(
   'assets/nebula.jpg',
@@ -28,7 +55,7 @@ textureLoader.load(
   }
 );
 
-// --- Background Music ---
+// === Background Music ===
 const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
@@ -44,7 +71,7 @@ document.addEventListener('click', () => {
   }
 }, { once: true });
 
-// --- Star Data (Projects & Skills) ---
+// === Star Data (Projects & Skills) ===
 const starsData = [
   { name: 'AI Projects', position: [5, 2, -10], url: 'projects.html', skills: ['Machine Learning', 'Python'] },
   { name: 'Web Dev', position: [-7, 3, -15], url: 'skills.html', skills: ['HTML', 'CSS', 'JavaScript'] },
@@ -52,7 +79,7 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// --- Create Stars ---
+// === Create Stars ===
 const stars = [];
 const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
 starsData.forEach(data => {
@@ -65,11 +92,11 @@ starsData.forEach(data => {
   });
   
   const starGroup = new THREE.Group();
-  const star = new THREE.Mesh(starGeometry, starMaterial);
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
+  const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+  const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
   
-  starGroup.add(star);
-  starGroup.add(glow);
+  starGroup.add(starMesh);
+  starGroup.add(glowMesh);
   starGroup.position.set(...data.position);
   starGroup.userData = data;
   
@@ -77,10 +104,38 @@ starsData.forEach(data => {
   stars.push(starGroup);
 });
 
-// --- Set Initial Camera Position ---
+// === Add Lens Flares to Each Star ===
+stars.forEach(star => {
+  const flareTexture = textureLoader.load('assets/lensflare.png'); // Ensure you have this texture
+  const lensflare = new Lensflare();
+  lensflare.addElement(new LensflareElement(flareTexture, 700, 0));
+  lensflare.position.copy(star.position);
+  scene.add(lensflare);
+});
+
+// === Particle System for Cosmic Dust / Nebula ===
+const particleCount = 10000;
+const positions = new Float32Array(particleCount * 3);
+for (let i = 0; i < particleCount * 3; i++) {
+  // Spread particles over a large area
+  positions[i] = (Math.random() - 0.5) * 200;
+}
+const particleGeometry = new THREE.BufferGeometry();
+particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const particleMaterial = new THREE.PointsMaterial({
+  color: 0xffffff,
+  size: 0.3,
+  transparent: true,
+  opacity: 0.7,
+  blending: THREE.AdditiveBlending
+});
+const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+scene.add(particleSystem);
+
+// === Set Initial Camera Position ===
 camera.position.z = 5;
 
-// --- Raycaster Setup for Hover & Click ---
+// === Raycaster Setup for Hover & Click ===
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('tooltip');
@@ -134,6 +189,7 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// --- Fly to Star Function (Camera Tween) ---
 function flyToStar(star) {
   // Lock the OrbitControls target to the star's position.
   controls.target.copy(star.position);
@@ -160,7 +216,6 @@ function flyToStar(star) {
     .start();
 }
 
-
 // --- Display Project Details ---
 function showProjectDetails(data) {
   projectDetails.innerHTML = `
@@ -183,7 +238,8 @@ function animate() {
     star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
   });
   
-  renderer.render(scene, camera);
+  // Render using the composer for bloom effect
+  composer.render();
 }
 animate();
 
@@ -192,4 +248,5 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  composer.setSize(window.innerWidth, window.innerHeight);
 });
