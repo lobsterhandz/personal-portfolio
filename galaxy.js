@@ -4,14 +4,18 @@ import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/thr
 // Scene Setup
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-const renderer = new THREE.WebGLRenderer();
+const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 // Load Nebula Background
 const textureLoader = new THREE.TextureLoader();
-const backgroundTexture = textureLoader.load('assets/nebula.jpg'); // Add a nebula image to your assets folder
-scene.background = backgroundTexture;
+textureLoader.load('assets/nebula.jpg', function(texture) {
+    scene.background = texture;
+}, undefined, function(error) {
+    console.error('Error loading background texture:', error);
+    scene.background = new THREE.Color(0x000011); // Fallback dark space color
+});
 
 // Star Data (Projects & Skills)
 const starsData = [
@@ -85,11 +89,6 @@ function flyToStar(star) {
     new window.TWEEN.Tween(camera.position)
         .to(target, 2000)
         .easing(window.TWEEN.Easing.Quadratic.Out)
-        .onUpdate(() => {
-            // Warp effect (scale background slightly during movement)
-            scene.background.offset.x += 0.002;
-            scene.background.offset.y += 0.002;
-        })
         .onComplete(() => {
             showProjectDetails(star.userData);
         })
