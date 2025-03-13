@@ -135,17 +135,19 @@ document.addEventListener('click', (event) => {
 });
 
 function flyToStar(star) {
-  // Set the target of OrbitControls to the star's position
+  // Focus on the star.
   controls.target.copy(star.position);
-  
-  // Compute the offset vector from the star to the current camera position
-  const offset = camera.position.clone().sub(star.position).normalize();
-  
-  // Set the desired distance from the star (adjust this value as needed)
+
+  // Compute a normalized direction from the camera to the star.
+  const direction = star.position.clone().sub(camera.position).normalize();
+
+  // Choose a desired distance from the star (adjust as needed).
   const desiredDistance = 2;
   
-  // Compute the new camera position based on the star's position and offset
-  const newCameraPos = star.position.clone().add(offset.multiplyScalar(desiredDistance));
+  // Position the camera so that the star is exactly desiredDistance in front.
+  // By subtracting the direction vector, the camera moves to the opposite side,
+  // ensuring the star ends up in the center of the view.
+  const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
   
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
