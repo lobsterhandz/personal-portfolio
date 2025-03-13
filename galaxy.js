@@ -134,13 +134,21 @@ document.addEventListener('click', (event) => {
   }
 });
 
-// --- Fly to Selected Star (Smooth Camera Animation using TWEEN) ---
 function flyToStar(star) {
-  const target = new THREE.Vector3(...star.position.toArray());
-  target.z += 2; // Offset to avoid collision
+  // Set the target of OrbitControls to the star's position
+  controls.target.copy(star.position);
+  
+  // Compute the offset vector from the star to the current camera position
+  const offset = camera.position.clone().sub(star.position).normalize();
+  
+  // Set the desired distance from the star (adjust this value as needed)
+  const desiredDistance = 2;
+  
+  // Compute the new camera position based on the star's position and offset
+  const newCameraPos = star.position.clone().add(offset.multiplyScalar(desiredDistance));
   
   new TWEEN.Tween(camera.position)
-    .to(target, 2000)
+    .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
     .onUpdate(() => controls.update())
     .onComplete(() => showProjectDetails(star.userData))
