@@ -1,6 +1,5 @@
 // Interactive 3D Galaxy with Clickable Stars, Nebula Background & Effects (Three.js)
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
-import TWEEN from 'https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js';
 
 // Scene Setup
 const scene = new THREE.Scene();
@@ -79,9 +78,9 @@ function flyToStar(star) {
     const target = new THREE.Vector3(...star.position);
     target.z += 2; // Adjust to prevent collision
     
-    new TWEEN.Tween(camera.position)
+    new window.TWEEN.Tween(camera.position)
         .to(target, 2000)
-        .easing(TWEEN.Easing.Quadratic.Out)
+        .easing(window.TWEEN.Easing.Quadratic.Out)
         .onUpdate(() => {
             // Warp effect (scale background slightly during movement)
             scene.background.offset.x += 0.002;
@@ -107,7 +106,7 @@ function showProjectDetails(data) {
 // Animation Loop with Star Drifting
 function animate() {
     requestAnimationFrame(animate);
-    TWEEN.update();
+    window.TWEEN.update();
     
     // Stars drift slightly for immersion
     stars.forEach(star => {
