@@ -8,7 +8,36 @@
     <title>Home | Jose's Personal Portfolio</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
 </head>
+<script>
+    async function loadRSS() {
+        const rssContainer = document.getElementById("rss-container");
+        const proxy = "https://api.rss2json.com/v1/api.json?rss_url=";
+        const feedUrl = "https://your-rss-feed-url.com/feed"; // Replace with a real RSS feed
 
+        try {
+            const response = await fetch(proxy + encodeURIComponent(feedUrl));
+            const data = await response.json();
+
+            if (data.status === "ok") {
+                data.items.slice(0, 5).forEach(item => {
+                    const article = document.createElement("div");
+                    article.classList.add("rss-item");
+                    article.innerHTML = `
+                        <h3><a href="${item.link}" target="_blank">${item.title}</a></h3>
+                        <p>${item.description.substring(0, 100)}...</p>
+                    `;
+                    rssContainer.appendChild(article);
+                });
+            } else {
+                rssContainer.innerHTML = "<p>Failed to load RSS feed.</p>";
+            }
+        } catch (error) {
+            rssContainer.innerHTML = "<p>Error fetching RSS feed.</p>";
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadRSS);
+</script>
 <body>
     <!-- Header -->
     <header>

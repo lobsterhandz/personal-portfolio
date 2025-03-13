@@ -491,6 +491,20 @@ body {
 .rss-article h3 a:hover {
     text-decoration: underline;
 }
+.rss-item {
+    background: #222;
+    padding: 10px;
+    margin: 10px 0;
+    border-left: 4px solid #0ff;
+}
+.rss-item h3 a {
+    color: #0ff;
+    text-decoration: none;
+}
+.rss-item p {
+    color: #bbb;
+    font-size: 0.9em;
+}
 
 /* ============================= */
 /* Footer Styles */
