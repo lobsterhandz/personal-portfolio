@@ -50,12 +50,16 @@ const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
 const audioLoader = new THREE.AudioLoader();
-audioLoader.load('assets/space_ambience.mp3', function(buffer) {
-    backgroundSound.setBuffer(buffer);
-    backgroundSound.setLoop(true);
-    backgroundSound.setVolume(0.3);
-    backgroundSound.play();
-});
+document.addEventListener('click', () => {
+    if (!backgroundSound.isPlaying) {
+        audioLoader.load('assets/space_ambience.mp3', function(buffer) {
+            backgroundSound.setBuffer(buffer);
+            backgroundSound.setLoop(true);
+            backgroundSound.setVolume(0.3);
+            backgroundSound.play();
+        });
+    }
+}, { once: true });
 
 // Raycaster for Click Detection
 const raycaster = new THREE.Raycaster();
