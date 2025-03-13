@@ -1,6 +1,6 @@
 // galaxy.js
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
-import { OrbitControls } from 'https://threejs.org/examples/jsm/controls/OrbitControls.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
