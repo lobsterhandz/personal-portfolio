@@ -67,16 +67,16 @@ const starsData = [
 
 // --- Create Realistic Stars ---
 const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.5, 64, 64); // Higher res for smoother stars
+const starGeometry = new THREE.SphereGeometry(0.5, 64, 64); // Higher res
 
-// Plasma Shader (Animated, Swirling Star Surface)
+// Plasma Shader (Fixes Polka Dots, Adds Swirling Motion)
 const starShaderMaterial = new THREE.ShaderMaterial({
   uniforms: {
     time: { value: 0 },
-    color1: { value: new THREE.Color(0xffa500) }, // Orange Core
-    color2: { value: new THREE.Color(0xffff00) }, // Yellow Outer Glow
-    noiseStrength: { value: 3.0 }, // Adjusts the plasma turbulence
-    speed: { value: 0.5 } // Swirling speed
+    color1: { value: new THREE.Color(0xffaa00) }, // Inner core (orange)
+    color2: { value: new THREE.Color(0xffff00) }, // Outer plasma (yellow)
+    noiseStrength: { value: 8.0 }, // Stronger turbulence
+    speed: { value: 0.2 } // Slower swirling speed
   },
   vertexShader: `
     varying vec3 vNormal;
@@ -97,14 +97,16 @@ const starShaderMaterial = new THREE.ShaderMaterial({
     varying vec3 vNormal;
     varying vec3 vPosition;
 
-    // Simple noise function for plasma effect
-    float noise(vec3 p) {
-      return sin(p.x * 10.0 + time * speed) * 0.5 + 
-             cos(p.y * 10.0 + time * speed) * 0.5;
+    // Improved noise function for turbulence
+    float turbulence(vec3 p) {
+      return sin(p.x * noiseStrength + time * speed) * 0.5 + 
+             cos(p.y * noiseStrength + time * speed) * 0.5 + 
+             sin(p.z * noiseStrength + time * speed) * 0.5;
     }
 
     void main() {
-      float plasma = noise(vPosition * noiseStrength);
+      float plasma = turbulence(vPosition);
+      plasma = smoothstep(0.2, 1.0, plasma); // Smooth out the effect
       vec3 color = mix(color1, color2, plasma);
       gl_FragColor = vec4(color, 1.0);
     }
@@ -112,11 +114,36 @@ const starShaderMaterial = new THREE.ShaderMaterial({
   side: THREE.DoubleSide
 });
 
-// Glow Layer (Soft Radiant Atmosphere)
-const glowMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffaa00,
+// Glow Layer (Fire-like expansion effect)
+const glowMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    glowColor: { value: new THREE.Color(0xff5500) },
+    intensity: { value: 1.5 }
+  },
+  vertexShader: `
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+    void main() {
+      vNormal = normalize(normal);
+      vPosition = position;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float time;
+    uniform vec3 glowColor;
+    uniform float intensity;
+    
+    varying vec3 vNormal;
+    varying vec3 vPosition;
+
+    void main() {
+      float glow = 0.5 + 0.5 * sin(time * 1.5 + length(vPosition)); // Flickering effect
+      gl_FragColor = vec4(glowColor * glow * intensity, 1.0);
+    }
+  `,
   transparent: true,
-  opacity: 0.6,
   blending: THREE.AdditiveBlending
 });
 
@@ -127,7 +154,7 @@ starsData.forEach((data) => {
   const star = new THREE.Mesh(starGeometry, starShaderMaterial);
 
   // Glow Effect
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 32, 32), glowMaterial);
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), glowMaterial);
 
   starGroup.add(star);
   starGroup.add(glow);
@@ -138,14 +165,15 @@ starsData.forEach((data) => {
   stars.push(starGroup);
 });
 
-// Update shader time for plasma swirl effect
+// Update shader time for plasma swirl & glow flicker
 function animateStars() {
-  starShaderMaterial.uniforms.time.value += 0.02; // Controls animation speed
+  starShaderMaterial.uniforms.time.value += 0.02;
+  glowMaterial.uniforms.time.value += 0.03; // Faster flicker effect
   requestAnimationFrame(animateStars);
 }
 animateStars();
 
-// --- Hover Effect (Only Affect Hovered Star) ---
+// --- Fix: Hover Effect (Highlight Only the Star You Hover Over) ---
 document.addEventListener('mousemove', (event) => {
   const headerOffset = getHeaderOffset();
   const adjustedY = event.clientY - headerOffset * 0.5;
@@ -154,20 +182,20 @@ document.addEventListener('mousemove', (event) => {
   mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
-  const intersects = raycaster.intersectObjects(stars, true);
-  
+  const intersects = raycaster.intersectObjects(stars.map(s => s.children[0]), true); // Only check stars, not glow
+
   // Reset all stars to normal
   stars.forEach((star) => {
-    star.children[0].material.uniforms.color1.value.set(0xffa500); // Default Orange
-    star.children[0].material.uniforms.color2.value.set(0xffff00); // Default Yellow
+    star.children[0].material.uniforms.color1.value.set(0xffaa00);
+    star.children[0].material.uniforms.color2.value.set(0xffff00);
   });
 
   if (intersects.length > 0) {
     const hoveredStar = intersects[0].object.parent;
-    
-    // Highlight the hovered star
-    hoveredStar.children[0].material.uniforms.color1.value.set(0xff0000); // More intense red glow
-    hoveredStar.children[0].material.uniforms.color2.value.set(0xffaa00); // Brighter yellow
+
+    // Highlight only hovered star
+    hoveredStar.children[0].material.uniforms.color1.value.set(0xff3300); // Deep red center
+    hoveredStar.children[0].material.uniforms.color2.value.set(0xffdd00); // Brighter outer edges
   }
 });
 
