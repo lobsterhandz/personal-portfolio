@@ -103,7 +103,7 @@ starsData.forEach(data => {
 
 // === Add Lens Flares to Each Star ===
 stars.forEach(star => {
-  const flareTexture = textureLoader.load('assets/lensflare.png'); // Ensure you have this texture
+  const flareTexture = textureLoader.load('https://threejs.org/examples/textures/lensflare/lensflare0.png');
   const lensflare = new Lensflare();
   lensflare.addElement(new LensflareElement(flareTexture, 700, 0));
   lensflare.position.copy(star.position);
