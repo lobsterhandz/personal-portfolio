@@ -7,7 +7,7 @@ document.body.appendChild(renderer.domElement);
 
 // Background Scaling & Curving Effect
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/space_bg.jpg', (texture) => {
+textureLoader.load('assets/galaxy.jpg', (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   scene.background = texture;
 });
@@ -30,12 +30,12 @@ const planets = [
   { name: 'Saturn', file: 'saturn.glb', distance: 180, scale: 4 },
   { name: 'Uranus', file: 'uranus.glb', distance: 250, scale: 3 },
   { name: 'Neptune', file: 'neptune.glb', distance: 300, scale: 3 },
-  { name: 'Pluto', file: 'pluto.glb', distance: 330, scale: 0.4 }
+  //{ name: 'Pluto', file: 'pluto.glb', distance: 330, scale: 0.4 }
 ];
 
 const planetObjects = {};
 planets.forEach((data) => {
-  loader.load(`assets/${data.file}`, (gltf) => {
+  loader.load(`./assets/${data.file}`, (gltf) => { 
     const planet = gltf.scene;
     planet.scale.set(data.scale, data.scale, data.scale);
     planet.position.set(data.distance, 0, 0);
