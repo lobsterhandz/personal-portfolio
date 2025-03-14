@@ -1,4 +1,4 @@
-import * as THREE from './three.module.js';
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
