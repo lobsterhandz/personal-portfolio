@@ -2,7 +2,7 @@ import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
-// --- Scene Setup ---
+// --- Scene Setup 1---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
