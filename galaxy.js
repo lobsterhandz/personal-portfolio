@@ -1,193 +1,149 @@
-// --- Create Realistic Stars ---
-const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.5, 64, 64);
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
+import { OrbitControls } from './OrbitControls.js';
+import { GLTFLoader } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/loaders/GLTFLoader.min.js';
 
-// Plasma Shader (Swirling, Spiraling, and More Heat-like)
-const starShaderMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    color1: { value: new THREE.Color(0xffaa00) }, // Core
-    color2: { value: new THREE.Color(0xffff00) }, // Outer glow
-    noiseStrength: { value: 5.0 }, // Controls plasma turbulence
-    swirlIntensity: { value: 1.0 }, // Base swirl effect
-    zoomSwirl: { value: 1.0 } // Controls extra swirl when zoomed
-  },
-  vertexShader: `
-    varying vec3 vPosition;
-    void main() {
-      vPosition = position;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform float time;
-    uniform vec3 color1;
-    uniform vec3 color2;
-    uniform float noiseStrength;
-    uniform float swirlIntensity;
-    uniform float zoomSwirl;
+// --- Scene Setup ---
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  3000
+);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
 
-    varying vec3 vPosition;
+// --- OrbitControls ---
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.maxDistance = 2000; // Prevent zooming too far out
+controls.minDistance = 10; // Prevent zooming inside planets
 
-    // Swirl function (adds a spiral motion effect)
-    float swirl(vec3 p) {
-      return sin(p.x * noiseStrength + time * swirlIntensity) * 0.5 +
-             cos(p.y * noiseStrength + time * swirlIntensity * zoomSwirl) * 0.5 +
-             sin(p.z * noiseStrength + time * swirlIntensity * 0.8) * 0.5;
-    }
-
-    void main() {
-      float plasma = swirl(vPosition);
-      plasma = smoothstep(0.3, 1.0, plasma);
-      vec3 color = mix(color1, color2, plasma);
-      gl_FragColor = vec4(color, 1.0);
-    }
-  `,
-  side: THREE.DoubleSide
+// --- Background ---
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load('assets/space_bg.jpg', (texture) => { 
+    scene.background = texture;
+}, undefined, (error) => { 
+    console.error('Error loading background:', error);
+    scene.background = new THREE.Color(0x000011);
 });
 
-// Glow Layer (ONLY for hovered or clicked stars)
-const glowMaterial = new THREE.ShaderMaterial({
-  uniforms: {
-    time: { value: 0 },
-    glowColor: { value: new THREE.Color(0xff5500) },
-    intensity: { value: 0.0 } // Start invisible (only activates on hover/click)
-  },
-  vertexShader: `
-    varying vec3 vPosition;
-    void main() {
-      vPosition = position;
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    }
-  `,
-  fragmentShader: `
-    uniform float time;
-    uniform vec3 glowColor;
-    uniform float intensity;
+// --- Load Planets & Sun ---
+const loader = new GLTFLoader();
+const planets = [];
+const planetData = [
+  { name: 'Sun', file: 'sun.glb', distance: 0, scale: 10 },
+  { name: 'Mercury', file: 'mercury.glb', distance: 20, scale: 0.5 },
+  { name: 'Venus', file: 'venus.glb', distance: 30, scale: 0.9 },
+  { name: 'Earth', file: 'earth.glb', distance: 40, scale: 1 },
+  { name: 'Moon', file: 'moon.glb', distance: 45, scale: 0.3, orbitAround: 'Earth' },
+  { name: 'Mars', file: 'mars.glb', distance: 55, scale: 0.8 },
+  { name: 'Jupiter', file: 'jupiter.glb', distance: 80, scale: 3 },
+  { name: 'Saturn', file: 'saturn.glb', distance: 110, scale: 2.5 },
+  { name: 'Uranus', file: 'uranus.glb', distance: 140, scale: 2 },
+  { name: 'Neptune', file: 'neptune.glb', distance: 170, scale: 2 },
+  { name: 'Pluto', file: 'pluto.glb', distance: 190, scale: 0.5 } // Optional
+];
+
+// --- Load Models & Position Them ---
+const sun = new THREE.Object3D(); // Sun center for orbiting
+scene.add(sun);
+
+planetData.forEach((data) => {
+  loader.load(`assets/${data.file}`, (gltf) => {
+    const planet = gltf.scene;
+    planet.scale.set(data.scale, data.scale, data.scale);
     
-    varying vec3 vPosition;
-
-    void main() {
-      float glow = 0.5 + 0.5 * sin(time * 2.0 + length(vPosition));
-      gl_FragColor = vec4(glowColor * glow * intensity, 1.0);
+    if (data.distance !== 0) {
+      planet.position.set(data.distance, 0, 0);
     }
-  `,
-  transparent: true,
-  blending: THREE.AdditiveBlending
-});
+    
+    planet.userData = data;
+    scene.add(planet);
+    planets.push(planet);
 
-starsData.forEach((data) => {
-  const starGroup = new THREE.Group();
-
-  // Main Star
-  const star = new THREE.Mesh(starGeometry, starShaderMaterial);
-
-  // Glow Effect (Initially Invisible)
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.8, 32, 32), glowMaterial);
-
-  starGroup.add(star);
-  starGroup.add(glow);
-  starGroup.position.set(...data.position);
-  starGroup.userData = data;
-
-  scene.add(starGroup);
-  stars.push(starGroup);
-});
-
-// --- Update Shader for Time Swirl & Glow ---
-function animateStars() {
-  starShaderMaterial.uniforms.time.value += 0.02;
-  requestAnimationFrame(animateStars);
-}
-animateStars();
-
-// --- Fix: Hover Effect (Highlight Only the Star You Hover Over) ---
-document.addEventListener('mousemove', (event) => {
-  const headerOffset = getHeaderOffset();
-  const adjustedY = event.clientY - headerOffset * 0.5;
-
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  const intersects = raycaster.intersectObjects(stars.map(s => s.children[0]), true);
-
-  // Reset all stars (Turn off glow, Reset Colors)
-  stars.forEach((star) => {
-    star.children[0].material.uniforms.color1.value.set(0xffaa00);
-    star.children[0].material.uniforms.color2.value.set(0xffff00);
-    star.children[1].material.uniforms.intensity.value = 0.0; // Turn off glow
+    // Special handling for the Moon (orbiting Earth)
+    if (data.orbitAround === 'Earth') {
+      const earth = planets.find(p => p.userData.name === 'Earth');
+      if (earth) {
+        earth.add(planet);
+        planet.position.set(5, 0, 0); // Orbit around Earth
+      }
+    }
   });
-
-  if (intersects.length > 0) {
-    const hoveredStar = intersects[0].object.parent;
-
-    // Activate Glow for this star only
-    hoveredStar.children[1].material.uniforms.intensity.value = 1.2;
-
-    // Make it a brighter highlight
-    hoveredStar.children[0].material.uniforms.color1.value.set(0xff3300);
-    hoveredStar.children[0].material.uniforms.color2.value.set(0xffdd00);
-  }
 });
 
-// --- Click Event: Fly to Star & Add More Swirl Effect ---
-document.addEventListener('click', (event) => {
-  const headerOffset = getHeaderOffset();
-  const adjustedY = event.clientY - headerOffset * 0.5;
-
+// --- Hover Effect ---
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+document.addEventListener('mousemove', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
-  const intersects = raycaster.intersectObjects(stars.map(s => s.children[0]), true);
+  const intersects = raycaster.intersectObjects(planets, true);
+
+  // Reset all planet scales
+  planets.forEach(planet => planet.scale.set(planet.userData.scale, planet.userData.scale, planet.userData.scale));
+
   if (intersects.length > 0) {
-    const selectedStar = intersects[0].object.parent;
-    flyToStar(selectedStar);
+    const hoveredPlanet = intersects[0].object;
+    hoveredPlanet.scale.multiplyScalar(1.2); // Slightly enlarge on hover
   }
 });
 
-// --- Fly to Selected Star & Intensify Swirl ---
-function flyToStar(star) {
-  controls.target.copy(star.position);
+// --- Click Event (Zoom to Planet) ---
+document.addEventListener('click', (event) => {
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects(planets, true);
+  if (intersects.length > 0) {
+    const selectedPlanet = intersects[0].object;
+    flyToPlanet(selectedPlanet);
+  }
+});
+
+// --- Fly to Planet Function ---
+function flyToPlanet(planet) {
+  controls.target.copy(planet.position);
   controls.update();
 
-  const direction = star.position.clone().sub(camera.position).normalize();
-  const desiredDistance = 2;
-  const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
+  const direction = planet.position.clone().sub(camera.position).normalize();
+  const desiredDistance = planet.userData.scale * 5;
+  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(desiredDistance));
 
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
     .onUpdate(() => {
-      controls.target.copy(star.position);
+      controls.target.copy(planet.position);
       controls.update();
-    })
-    .onStart(() => {
-      // Increase swirl effect on zoom
-      star.children[0].material.uniforms.zoomSwirl.value = 4.0;
-    })
-    .onComplete(() => {
-      showProjectDetails(star.userData);
-      setTimeout(() => {
-        star.children[0].material.uniforms.zoomSwirl.value = 1.0; // Reset swirl
-      }, 5000);
     })
     .start();
 }
 
-// --- Display Project Details ---
-function showProjectDetails(data) {
-  const headerOffset = getHeaderOffset();
-  projectDetails.style.top = `${headerOffset + 20}px`;
+// --- Animate Orbits ---
+function animate() {
+  requestAnimationFrame(animate);
+  TWEEN.update();
+  controls.update();
 
-  projectDetails.innerHTML = `
-    <h2>${data.name}</h2>
-    <p>Skills Used: ${data.skills.join(', ')}</p>
-    <a href="${data.url}" target="_blank">View Project</a>
-  `;
-  projectDetails.style.display = 'block';
+  // Simulate planets orbiting the Sun
+  planets.forEach((planet, index) => {
+    if (planet.userData.distance > 0) {
+      const speed = 0.0005 / planet.userData.distance;
+      planet.position.x = Math.cos(Date.now() * speed) * planet.userData.distance;
+      planet.position.z = Math.sin(Date.now() * speed) * planet.userData.distance;
+    }
+  });
+
+  renderer.render(scene, camera);
 }
+animate();
 
 // --- Handle Window Resize ---
 window.addEventListener('resize', () => {
