@@ -3,9 +3,6 @@
 // === Imports ===
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
-import { EffectComposer } from './EffectComposer.js';
-import { RenderPass } from './RenderPass.js';
-import { UnrealBloomPass } from './UnrealBloomPass.js';
 
 // === Scene Setup ===
 const scene = new THREE.Scene();
@@ -17,257 +14,127 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// === Mobile Friendly Toggle ===
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
-
-// === Post-Processing Setup (Subtle Bloom) ===
-let composer;
-if (!isMobile) {
-  composer = new EffectComposer(renderer);
-  composer.addPass(new RenderPass(scene, camera));
-
-  // Subtle bloom parameters for realistic effect
-  const bloomParams = {
-    exposure: 1,
-    bloomStrength: 0.3,
-    bloomThreshold: 0.7,
-    bloomRadius: 0.0
-  };
-  const bloomPass = new UnrealBloomPass(
-    new THREE.Vector2(window.innerWidth, window.innerHeight),
-    bloomParams.bloomStrength,
-    bloomParams.bloomRadius,
-    bloomParams.bloomThreshold
-  );
-  composer.addPass(bloomPass);
-}
-
 // === OrbitControls Setup ===
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.rotateSpeed = 0.5; // Slower rotation for realism
+camera.position.set(0, 0, 5);
 
-// === Sky Sphere (Dynamic Nebula Background) ===
+// === Texture Loader ===
 const textureLoader = new THREE.TextureLoader();
+
+// === Helper Function: Create Layered Star ===
+function createLayeredStar({
+  coreRadius = 0.5,
+  coreTexture = 'assets/star_surface.jpg',
+  atmosphereRadius = 0.55,
+  atmosphereTexture = 'assets/star_atmosphere.png',
+  coronaRadius = 0.6,
+  coronaTexture = 'assets/star_corona.png',
+  emissiveColor = 0xffdd00,
+  emissiveIntensity = 0.8
+} = {}) {
+  const starGroup = new THREE.Group();
+
+  // Core Sphere: Use MeshPhongMaterial for a lit, emissive look
+  const coreGeom = new THREE.SphereGeometry(coreRadius, 32, 32);
+  const coreMat = new THREE.MeshPhongMaterial({
+    map: textureLoader.load(coreTexture),
+    emissive: emissiveColor,
+    emissiveIntensity: emissiveIntensity,
+    shininess: 50
+  });
+  const coreMesh = new THREE.Mesh(coreGeom, coreMat);
+
+  // Atmosphere Sphere: Slightly larger, semi-transparent, additive
+  const atmGeom = new THREE.SphereGeometry(atmosphereRadius, 32, 32);
+  const atmMat = new THREE.MeshBasicMaterial({
+    map: textureLoader.load(atmosphereTexture),
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.FrontSide
+  });
+  const atmMesh = new THREE.Mesh(atmGeom, atmMat);
+
+  // Corona Sphere: Even larger, for a faint outer glow
+  const coronaGeom = new THREE.SphereGeometry(coronaRadius, 32, 32);
+  const coronaMat = new THREE.MeshBasicMaterial({
+    map: textureLoader.load(coronaTexture),
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    side: THREE.FrontSide
+  });
+  const coronaMesh = new THREE.Mesh(coronaGeom, coronaMat);
+
+  // Optional: Add a point light to simulate star light (affects nearby objects)
+  const starLight = new THREE.PointLight(emissiveColor, 1.0, 10);
+  starLight.position.set(0, 0, 0);
+
+  // Group all layers together
+  starGroup.add(coreMesh);
+  starGroup.add(atmMesh);
+  starGroup.add(coronaMesh);
+  starGroup.add(starLight);
+
+  return starGroup;
+}
+
+// === Create a Layered Star and Add It to the Scene ===
+const layeredStar = createLayeredStar({
+  coreRadius: 0.5,
+  atmosphereRadius: 0.55,
+  coronaRadius: 0.6,
+  coreTexture: 'assets/star_surface.jpg',
+  atmosphereTexture: 'assets/star_atmosphere.png',
+  coronaTexture: 'assets/star_corona.png',
+  emissiveColor: 0xffdd00,
+  emissiveIntensity: 0.8
+});
+layeredStar.position.set(0, 0, 0);
+scene.add(layeredStar);
+
+// === Lighting (Ambient + Directional) ===
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
+scene.add(ambientLight);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(5, 5, 5);
+scene.add(directionalLight);
+
+// === Optional: Sky Sphere for Background (Nebula) ===
 const skyTexture = textureLoader.load('assets/nebula.jpg');
 const skyGeometry = new THREE.SphereGeometry(1000, 32, 32);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: skyTexture,
   side: THREE.BackSide,
   transparent: true,
-  opacity: 0.9 // Slightly faded so stars remain visible
+  opacity: 0.9
 });
 const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skyMesh);
 
-// === Background Music ===
-const audioListener = new THREE.AudioListener();
-camera.add(audioListener);
-const backgroundSound = new THREE.Audio(audioListener);
-const audioLoader = new THREE.AudioLoader();
-document.addEventListener('click', () => {
-  if (!backgroundSound.isPlaying) {
-    audioLoader.load('assets/space_ambience.mp3', (buffer) => {
-      backgroundSound.setBuffer(buffer);
-      backgroundSound.setLoop(true);
-      backgroundSound.setVolume(0.25);
-      backgroundSound.play();
-    });
-  }
-}, { once: true });
-
-// === Star Data (Projects & Skills) ===
-const starsData = [
-  { name: 'AI Projects', position: [5, 2, -10], url: 'projects.html', skills: ['Machine Learning', 'Python'] },
-  { name: 'Web Dev', position: [-7, 3, -15], url: 'skills.html', skills: ['HTML', 'CSS', 'JavaScript'] },
-  { name: 'Game Dev', position: [3, -4, -8], url: 'projects.html', skills: ['Unity', 'C#', 'Pygame'] },
-  { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
-];
-
-// 1. STAR CORE (lit + emissive)
-const coreGeometry = new THREE.SphereGeometry(0.3, 32, 32);
-const coreMaterial = new THREE.MeshPhongMaterial({
-  color: 0xffffcc,       // Base color
-  emissive: 0xffdd00,    // Glow from within
-  emissiveIntensity: 0.6,
-  shininess: 80          // Higher shininess for a bright specular highlight
-});
-const starCore = new THREE.Mesh(coreGeometry, coreMaterial);
-
-// 2. SOFT GLOW SPRITE
-// Load a circular gradient texture that fades to transparent.
-const glowTexture = new THREE.TextureLoader().load('path/to/glowSprite.png'); 
-// You can use a radial gradient PNG or one of Three.js example sprites.
-
-const glowMaterial = new THREE.SpriteMaterial({
-  map: glowTexture,
-  color: 0xffffaa,       // Slightly tinted glow
-  blending: THREE.AdditiveBlending,
-  transparent: true,
-  opacity: 0.3,
-  depthWrite: false,
-  depthTest: false
-});
-
-const glowSprite = new THREE.Sprite(glowMaterial);
-// Scale it so the glow extends beyond the star core.
-glowSprite.scale.set(1.8, 1.8, 1); // Adjust as needed
-
-// 3. OPTIONAL POINT LIGHT
-// If you want this star to illuminate nearby objects, add a small point light.
-const starLight = new THREE.PointLight(0xffdd00, 1.0, 10); 
-// color, intensity, distance
-starLight.position.set(0, 0, 0); // Will be in the same group as the star
-
-// 4. GROUP EVERYTHING
-const starGroup = new THREE.Group();
-starGroup.add(starCore);
-starGroup.add(glowSprite);
-starGroup.add(starLight); // optional
-
-
-
-// === Particle System for Cosmic Dust / Nebula ===
-const particleCount = isMobile ? 2000 : 5000;
-const positions = new Float32Array(particleCount * 3);
-for (let i = 0; i < particleCount * 3; i++) {
-  positions[i] = (Math.random() - 0.5) * 300;
-}
-const particleGeometry = new THREE.BufferGeometry();
-particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-const particleTexture = textureLoader.load('https://threejs.org/examples/textures/sprites/disc.png');
-const particleMaterial = new THREE.PointsMaterial({
-  map: particleTexture,
-  color: 0xffffff,
-  size: isMobile ? 0.15 : 0.2,
-  transparent: true,
-  opacity: 0.35,
-  blending: THREE.AdditiveBlending,
-  depthWrite: false,
-  sizeAttenuation: true
-});
-const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
-scene.add(particleSystem);
-
-// === Set Initial Camera Position ===
-camera.position.z = 5;
-
-// === Raycaster Setup for Hover & Click ===
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const tooltip = document.getElementById('tooltip');
-const projectDetails = document.getElementById('project-details');
-
-// --- Hover Effect: Show Tooltip & Highlight Star ---
-document.addEventListener('mousemove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(stars, true);
-  if (intersects.length > 0) {
-    const hoveredStar = intersects[0].object.parent;
-    tooltip.style.opacity = 1;
-    tooltip.style.left = (event.clientX + 10) + 'px';
-    tooltip.style.top = (event.clientY + 10) + 'px';
-    tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(', ')}`;
-    
-    // Highlight the hovered star by temporarily darkening the core
-    hoveredStar.children.forEach(child => {
-      if (child.material && child.material.color) {
-        child.material.color.set(0xff0000);
-      }
-    });
-  } else {
-    tooltip.style.opacity = 0;
-    // Reset all stars to their default color
-    stars.forEach(star => {
-      star.children.forEach(child => {
-        if (child.material && child.material.color) {
-          child.material.color.set(0x333300);
-        }
-      });
-    });
-  }
-});
-
-// --- Click Event: Fly to Star & Display Project Details ---
-document.addEventListener('click', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(stars, true);
-  if (intersects.length > 0) {
-    const selectedStar = intersects[0].object.parent;
-    flyToStar(selectedStar);
-  } else {
-    projectDetails.style.display = 'none';
-  }
-});
-
-// --- Fly to Star Function (Camera Tween) ---
-function flyToStar(star) {
-  controls.target.copy(star.position);
-  controls.update();
-  
-  const direction = camera.position.clone().sub(star.position).normalize();
-  const desiredDistance = 2;
-  const newCameraPos = star.position.clone().add(direction.multiplyScalar(desiredDistance));
-  
-  new TWEEN.Tween(camera.position)
-    .to(newCameraPos, 2000)
-    .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => {
-      controls.target.copy(star.position);
-      controls.update();
-    })
-    .onComplete(() => {
-      showProjectDetails(star.userData);
-    })
-    .start();
-}
-
-// --- Display Project Details ---
-function showProjectDetails(data) {
-  projectDetails.innerHTML = `
-    <h2>${data.name}</h2>
-    <p>Skills Used: ${data.skills.join(', ')}</p>
-    <a href="${data.url}" target="_blank">View Project</a>
-  `;
-  projectDetails.style.display = 'block';
-}
-
-// --- Animation Loop ---
+// === Animation Loop ===
 function animate() {
   requestAnimationFrame(animate);
-  TWEEN.update();
   controls.update();
-  
-  // Slight drifting of stars for additional immersion
-  stars.forEach(star => {
-    star.position.x += Math.sin(Date.now() * 0.0001 + star.position.y) * 0.002;
-    star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
-  });
-  
-  // Center the sky sphere on the camera and apply a subtle rotation for parallax
+
+  // Optional rotation animations for atmosphere and corona for dynamic effect
+  // Assuming children order: [coreMesh, atmMesh, coronaMesh, starLight]
+  layeredStar.children[1].rotation.y += 0.0005;
+  layeredStar.children[2].rotation.y -= 0.0005;
+
+  // Center sky sphere on camera and rotate slowly for parallax effect
   skyMesh.position.copy(camera.position);
   skyMesh.rotation.y += 0.0002;
-  
-  // Render using composer if available; otherwise, use renderer
-  if (composer && !isMobile) {
-    composer.render();
-  } else {
-    renderer.render(scene, camera);
-  }
+
+  renderer.render(scene, camera);
 }
 animate();
 
-// --- Handle Window Resize ---
+// === Handle Window Resize ===
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
-  if (composer) composer.setSize(window.innerWidth, window.innerHeight);
 });
