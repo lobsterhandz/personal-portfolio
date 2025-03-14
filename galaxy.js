@@ -1,37 +1,31 @@
-// galaxy.js
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  1000
-);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Set the canvas as a full-screen fixed background behind UI elements.
+// Ensure canvas is behind UI elements
 renderer.domElement.style.position = 'fixed';
 renderer.domElement.style.top = '0';
 renderer.domElement.style.left = '0';
 renderer.domElement.style.width = '100%';
 renderer.domElement.style.height = '100%';
-renderer.domElement.style.zIndex = '0';
+renderer.domElement.style.zIndex = '-1';
 
 // --- OrbitControls Setup ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+controls.enableZoom = true;
+controls.enablePan = false; // Prevent pan issues on mobile
 
 // --- Background Setup ---
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load(
-  'assets/nebula.jpg',
-  (texture) => { scene.background = texture; },
+textureLoader.load('assets/nebula.jpg', (texture) => { scene.background = texture; },
   undefined,
   (error) => {
     console.error('Error loading background texture:', error);
@@ -44,67 +38,35 @@ const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
 const audioLoader = new THREE.AudioLoader();
-document.addEventListener(
-  'click',
-  () => {
-    if (!backgroundSound.isPlaying) {
-      audioLoader.load('assets/space_ambience.mp3', (buffer) => {
-        backgroundSound.setBuffer(buffer);
-        backgroundSound.setLoop(true);
-        backgroundSound.setVolume(0.3);
-        backgroundSound.play();
-      });
-    }
-  },
-  { once: true }
-);
+document.addEventListener('click', () => {
+  if (!backgroundSound.isPlaying) {
+    audioLoader.load('assets/space_ambience.mp3', (buffer) => {
+      backgroundSound.setBuffer(buffer);
+      backgroundSound.setLoop(true);
+      backgroundSound.setVolume(0.3);
+      backgroundSound.play();
+    });
+  }
+}, { once: true });
 
 // --- Star Data (Projects & Skills) ---
 const starsData = [
-  {
-    name: 'AI Projects',
-    position: [5, 2, -10],
-    url: 'projects.html',
-    skills: ['Machine Learning', 'Python']
-  },
-  {
-    name: 'Web Dev',
-    position: [-7, 3, -15],
-    url: 'skills.html',
-    skills: ['HTML', 'CSS', 'JavaScript']
-  },
-  {
-    name: 'Game Dev',
-    position: [3, -4, -8],
-    url: 'projects.html',
-    skills: ['Unity', 'C#', 'Pygame']
-  },
-  {
-    name: 'Cybersecurity',
-    position: [-4, -2, -12],
-    url: 'skills.html',
-    skills: ['Penetration Testing', 'Linux']
-  }
+  { name: 'AI Projects', position: [5, 2, -10], url: 'projects.html', skills: ['Machine Learning', 'Python'] },
+  { name: 'Web Dev', position: [-7, 3, -15], url: 'skills.html', skills: ['HTML', 'CSS', 'JavaScript'] },
+  { name: 'Game Dev', position: [3, -4, -8], url: 'projects.html', skills: ['Unity', 'C#', 'Pygame'] },
+  { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
 // --- Create Stars ---
 const stars = [];
 const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
 starsData.forEach((data) => {
-  // Create unique materials so each star can be highlighted independently
   const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    transparent: true,
-    opacity: 0.5
-  });
+  const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.5 });
 
   const starGroup = new THREE.Group();
   const star = new THREE.Mesh(starGeometry, starMaterial);
-  const glow = new THREE.Mesh(
-    new THREE.SphereGeometry(0.7, 24, 24),
-    glowMaterial
-  );
+  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
 
   starGroup.add(star);
   starGroup.add(glow);
@@ -121,24 +83,21 @@ camera.position.z = 5;
 // --- Raycaster Setup for Hover & Click ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-// Grab tooltip and project details elements
 const tooltip = document.getElementById('tooltip');
 const projectDetails = document.getElementById('project-details');
 
-// Helper function to get header height (if header exists)
+// Helper function to get header height dynamically
 function getHeaderOffset() {
-  const header = document.getElementById('header');
+  const header = document.querySelector('header');
   return header ? header.offsetHeight : 0;
 }
 
-// --- Hover Effect: Show Tooltip & Highlight Star ---
-document.addEventListener('mousemove', (event) => {
-  // Get header height offset
+// --- Adjust Mouse Input for Hover & Click ---
+function updateMousePosition(x, y) {
   const headerOffset = getHeaderOffset();
-  // Adjust the Y coordinate by subtracting the header height (or a fraction of it)
-  const adjustedY = event.clientY - headerOffset * 0.5; // tweak this factor as needed
+  const adjustedY = y - headerOffset * 0.5;
 
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.x = (x / window.innerWidth) * 2 - 1;
   mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
@@ -146,12 +105,10 @@ document.addEventListener('mousemove', (event) => {
   if (intersects.length > 0) {
     const hoveredStar = intersects[0].object.parent;
     tooltip.style.opacity = 1;
-    tooltip.style.left = (event.clientX + 10) + 'px';
-    // Position the tooltip a bit lower to account for the header.
-    tooltip.style.top = (event.clientY + headerOffset * 0.5 + 10) + 'px';
+    tooltip.style.left = `${x + 10}px`;
+    tooltip.style.top = `${y + headerOffset * 0.5 + 10}px`;
     tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(', ')}`;
 
-    // Highlight the hovered star.
     hoveredStar.children.forEach((child) => {
       if (child.material && child.material.color) {
         child.material.color.set(0xff0000);
@@ -159,7 +116,6 @@ document.addEventListener('mousemove', (event) => {
     });
   } else {
     tooltip.style.opacity = 0;
-    // Reset all stars to their default color.
     stars.forEach((star) => {
       star.children.forEach((child) => {
         if (child.material && child.material.color) {
@@ -168,6 +124,13 @@ document.addEventListener('mousemove', (event) => {
       });
     });
   }
+}
+
+// --- Handle Mouse & Touch Interactions ---
+document.addEventListener('mousemove', (event) => updateMousePosition(event.clientX, event.clientY));
+document.addEventListener('touchstart', (event) => {
+  const touch = event.touches[0];
+  updateMousePosition(touch.clientX, touch.clientY);
 });
 
 // --- Click Event: Fly to Star & Display Project Details ---
@@ -190,22 +153,17 @@ document.addEventListener('click', (event) => {
 
 // --- Fly to Selected Star (Locking the Camera on the Star) ---
 function flyToStar(star) {
-  // Lock the OrbitControls target to the star.
   controls.target.copy(star.position);
   controls.update();
 
-  // Compute a normalized direction from the camera toward the star.
   const direction = star.position.clone().sub(camera.position).normalize();
-  // Set your desired distance from the star (adjust as needed).
-  const desiredDistance = 2;
-  // Position the camera so the star is centered and at the desired distance.
+  const desiredDistance = window.innerWidth < 768 ? 3.5 : 2.5; // Adjust distance for mobile
   const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
 
   new TWEEN.Tween(camera.position)
-    .to(newCameraPos, 2000)
+    .to(newCameraPos, 1500)
     .easing(TWEEN.Easing.Quadratic.Out)
     .onUpdate(() => {
-      // Continually lock the target on the star during the tween.
       controls.target.copy(star.position);
       controls.update();
     })
@@ -217,9 +175,8 @@ function flyToStar(star) {
 
 // --- Display Project Details ---
 function showProjectDetails(data) {
-  // Optionally, position the details box a bit below the header.
   const headerOffset = getHeaderOffset();
-  projectDetails.style.top = (headerOffset + 20) + 'px';
+  projectDetails.style.top = `${headerOffset + 20}px`;
 
   projectDetails.innerHTML = `
     <h2>${data.name}</h2>
@@ -235,7 +192,6 @@ function animate() {
   TWEEN.update();
   controls.update();
 
-  // Optional: Slight drifting of stars for extra immersion.
   stars.forEach((star) => {
     star.position.x += Math.sin(Date.now() * 0.0001 + star.position.y) * 0.002;
     star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
