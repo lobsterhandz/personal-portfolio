@@ -6,7 +6,7 @@ import { OrbitControls } from './OrbitControls.js';
 import { EffectComposer } from './EffectComposer.js';
 import { RenderPass } from './RenderPass.js';
 import { UnrealBloomPass } from './UnrealBloomPass.js';
-import { Lensflare, LensflareElement } from './Lensflare.js';
+
 
 // === Scene Setup ===
 const scene = new THREE.Scene();
@@ -88,7 +88,7 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// === Create Stars & Refined Lens Flares ===
+// === Create Stars with Halo (No Lens Flare) ===
 const stars = [];
 const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
 starsData.forEach(data => {
@@ -97,11 +97,13 @@ starsData.forEach(data => {
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     transparent: true,
-    opacity: 0.4  // Subtler glow
+    opacity: 0.3, // Lowered opacity for a subtle glow
+    blending: THREE.AdditiveBlending // Ensures a soft, additive effect
   });
   
   const starGroup = new THREE.Group();
   const starMesh = new THREE.Mesh(starGeometry, starMaterial);
+  // Create a slightly larger sphere for the halo effect
   const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
   
   starGroup.add(starMesh);
@@ -111,14 +113,6 @@ starsData.forEach(data => {
   
   scene.add(starGroup);
   stars.push(starGroup);
-  
-  // Add a refined lens flare effect to each star:
-  // Reduced size to 50 makes it subtler. You can adjust the size and color as needed.
-  const flareTexture = textureLoader.load('https://threejs.org/examples/textures/lensflare/lensflare0.png');
-  const lensflare = new Lensflare();
-  lensflare.addElement(new LensflareElement(flareTexture, 50, 0, new THREE.Color(0xffdd00)));
-  lensflare.position.copy(starGroup.position);
-  scene.add(lensflare);
 });
 
 
