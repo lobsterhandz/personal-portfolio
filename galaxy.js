@@ -85,41 +85,47 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// === Create Stars with Subtle Halo (No Lens Flare) ===
-const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.3, 16, 16); // smaller central star
-starsData.forEach(data => {
-  // Create a dimmer material for the star core
-  const starMaterial = new THREE.MeshBasicMaterial({ color: 0x333300 });
-  
-  // Glow material for the halo effect; using lower opacity and additive blending.
-  // Disable depth test and depth write so the halo isn't clipped.
-  const glowMaterial = new THREE.MeshBasicMaterial({
-    color: 0xffff00,
-    transparent: true,
-    opacity: 0.2,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    depthTest: false
-  });
-  
-  const starGroup = new THREE.Group();
-  const starMesh = new THREE.Mesh(starGeometry, starMaterial);
-  
-  // Create a slightly larger sphere for the halo effect.
-  const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
-  
-  // Optionally, set a higher render order for the glowMesh to ensure it draws on top.
-  glowMesh.renderOrder = 1;
-  
-  starGroup.add(starMesh);
-  starGroup.add(glowMesh);
-  starGroup.position.set(...data.position);
-  starGroup.userData = data;
-  
-  scene.add(starGroup);
-  stars.push(starGroup);
+// 1. STAR CORE (lit + emissive)
+const coreGeometry = new THREE.SphereGeometry(0.3, 32, 32);
+const coreMaterial = new THREE.MeshPhongMaterial({
+  color: 0xffffcc,       // Base color
+  emissive: 0xffdd00,    // Glow from within
+  emissiveIntensity: 0.6,
+  shininess: 80          // Higher shininess for a bright specular highlight
 });
+const starCore = new THREE.Mesh(coreGeometry, coreMaterial);
+
+// 2. SOFT GLOW SPRITE
+// Load a circular gradient texture that fades to transparent.
+const glowTexture = new THREE.TextureLoader().load('path/to/glowSprite.png'); 
+// You can use a radial gradient PNG or one of Three.js example sprites.
+
+const glowMaterial = new THREE.SpriteMaterial({
+  map: glowTexture,
+  color: 0xffffaa,       // Slightly tinted glow
+  blending: THREE.AdditiveBlending,
+  transparent: true,
+  opacity: 0.3,
+  depthWrite: false,
+  depthTest: false
+});
+
+const glowSprite = new THREE.Sprite(glowMaterial);
+// Scale it so the glow extends beyond the star core.
+glowSprite.scale.set(1.8, 1.8, 1); // Adjust as needed
+
+// 3. OPTIONAL POINT LIGHT
+// If you want this star to illuminate nearby objects, add a small point light.
+const starLight = new THREE.PointLight(0xffdd00, 1.0, 10); 
+// color, intensity, distance
+starLight.position.set(0, 0, 0); // Will be in the same group as the star
+
+// 4. GROUP EVERYTHING
+const starGroup = new THREE.Group();
+starGroup.add(starCore);
+starGroup.add(glowSprite);
+starGroup.add(starLight); // optional
+
 
 
 // === Particle System for Cosmic Dust / Nebula ===
