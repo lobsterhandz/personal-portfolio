@@ -88,24 +88,28 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// === Create Stars with Halo (No Lens Flare) ===
+// === Create Stars with a Subtle Halo (No Overbearing Orb) ===
 const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
+const starGeometry = new THREE.SphereGeometry(0.3, 16, 16); // smaller star mesh
 starsData.forEach(data => {
-  // Create unique materials so each star can be highlighted independently
-  const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
+  // Dimmer star material for the central orb
+  const starMaterial = new THREE.MeshBasicMaterial({ color: 0x333300 });
+  
+  // Glow material adjusted for a subtle halo effect
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     transparent: true,
-    opacity: 0.3, // Lowered opacity for a subtle glow
-    blending: THREE.AdditiveBlending // Ensures a soft, additive effect
+    opacity: 0.2, // Lower opacity for a soft halo
+    blending: THREE.AdditiveBlending
   });
   
   const starGroup = new THREE.Group();
   const starMesh = new THREE.Mesh(starGeometry, starMaterial);
-  // Create a slightly larger sphere for the halo effect
+  
+  // Slightly larger sphere for the halo effect
   const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
   
+  // Optional: If you want the halo to be the only effect, you could add only glowMesh.
   starGroup.add(starMesh);
   starGroup.add(glowMesh);
   starGroup.position.set(...data.position);
