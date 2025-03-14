@@ -4,13 +4,10 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
 
-// Post-processing imports
-import { EffectComposer } from 'https://threejs.org/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'https://threejs.org/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'https://threejs.org/examples/jsm/postprocessing/UnrealBloomPass.js';
-
-// Lens flare imports
-import { Lensflare, LensflareElement } from 'https://threejs.org/examples/jsm/objects/Lensflare.js';
+import { EffectComposer } from './EffectComposer.js';
+import { RenderPass } from './RenderPass.js';
+import { UnrealBloomPass } from './UnrealBloomPass.js';
+import { Lensflare, LensflareElement } from './Lensflare.js';
 
 // === Scene Setup ===
 const scene = new THREE.Scene();
