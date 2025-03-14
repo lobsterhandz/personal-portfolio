@@ -1,6 +1,6 @@
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
-import { GLTFLoader } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/loaders/GLTFLoader.min.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -18,8 +18,8 @@ document.body.appendChild(renderer.domElement);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.maxDistance = 2000; // Prevent zooming too far out
-controls.minDistance = 10; // Prevent zooming inside planets
+controls.maxDistance = 2000;
+controls.minDistance = 10;
 
 // --- Background ---
 const textureLoader = new THREE.TextureLoader();
@@ -48,7 +48,7 @@ const planetData = [
 ];
 
 // --- Load Models & Position Them ---
-const sun = new THREE.Object3D(); // Sun center for orbiting
+const sun = new THREE.Object3D();
 scene.add(sun);
 
 planetData.forEach((data) => {
@@ -64,12 +64,11 @@ planetData.forEach((data) => {
     scene.add(planet);
     planets.push(planet);
 
-    // Special handling for the Moon (orbiting Earth)
     if (data.orbitAround === 'Earth') {
       const earth = planets.find(p => p.userData.name === 'Earth');
       if (earth) {
         earth.add(planet);
-        planet.position.set(5, 0, 0); // Orbit around Earth
+        planet.position.set(5, 0, 0);
       }
     }
   });
@@ -84,13 +83,11 @@ document.addEventListener('mousemove', (event) => {
   raycaster.setFromCamera(mouse, camera);
 
   const intersects = raycaster.intersectObjects(planets, true);
-
-  // Reset all planet scales
   planets.forEach(planet => planet.scale.set(planet.userData.scale, planet.userData.scale, planet.userData.scale));
 
   if (intersects.length > 0) {
     const hoveredPlanet = intersects[0].object;
-    hoveredPlanet.scale.multiplyScalar(1.2); // Slightly enlarge on hover
+    hoveredPlanet.scale.multiplyScalar(1.2);
   }
 });
 
@@ -132,8 +129,7 @@ function animate() {
   TWEEN.update();
   controls.update();
 
-  // Simulate planets orbiting the Sun
-  planets.forEach((planet, index) => {
+  planets.forEach((planet) => {
     if (planet.userData.distance > 0) {
       const speed = 0.0005 / planet.userData.distance;
       planet.position.x = Math.cos(Date.now() * speed) * planet.userData.distance;
