@@ -21,7 +21,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.enableZoom = true;
-controls.enablePan = false; // Prevent pan issues on mobile
+controls.enablePan = false; // Prevent accidental movement on mobile
 
 // --- Background Setup ---
 const textureLoader = new THREE.TextureLoader();
@@ -32,6 +32,27 @@ textureLoader.load('assets/nebula.jpg', (texture) => { scene.background = textur
     scene.background = new THREE.Color(0x000011);
   }
 );
+
+// --- Background Music (Now Works on Mobile & Desktop) ---
+const audioListener = new THREE.AudioListener();
+camera.add(audioListener);
+const backgroundSound = new THREE.Audio(audioListener);
+const audioLoader = new THREE.AudioLoader();
+
+function playBackgroundMusic() {
+  if (!backgroundSound.isPlaying) {
+    audioLoader.load('assets/space_ambience.mp3', (buffer) => {
+      backgroundSound.setBuffer(buffer);
+      backgroundSound.setLoop(true);
+      backgroundSound.setVolume(0.3);
+      backgroundSound.play();
+    });
+  }
+}
+
+// --- Ensure Audio Works on Mobile (User Interaction Needed) ---
+document.addEventListener('click', playBackgroundMusic, { once: true });
+document.addEventListener('touchstart', playBackgroundMusic, { once: true });
 
 // --- Star Data (Projects & Skills) ---
 const starsData = [
@@ -76,7 +97,7 @@ function getHeaderOffset() {
   return header ? header.offsetHeight : 0;
 }
 
-// --- Adjust Mouse Input for Hover & Click ---
+// --- Handle Hover & Click Adjustments ---
 function updateMousePosition(x, y) {
   const headerOffset = getHeaderOffset();
   const adjustedY = y - headerOffset * 0.5;
@@ -183,19 +204,6 @@ function animate() {
   requestAnimationFrame(animate);
   TWEEN.update();
   controls.update();
-
-  stars.forEach((star) => {
-    star.position.x += Math.sin(Date.now() * 0.0001 + star.position.y) * 0.002;
-    star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
-  });
-
   renderer.render(scene, camera);
 }
 animate();
-
-// --- Handle Window Resize ---
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
