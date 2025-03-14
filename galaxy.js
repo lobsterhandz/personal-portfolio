@@ -1,34 +1,67 @@
 // galaxy.js
+
+// === Imports ===
 import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
 import { OrbitControls } from './OrbitControls.js';
+import { EffectComposer } from './EffectComposer.js';
+import { RenderPass } from './RenderPass.js';
+import { UnrealBloomPass } from './UnrealBloomPass.js';
 
-// --- Scene Setup ---
+// === Scene Setup ===
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
-  75, window.innerWidth / window.innerHeight, 0.1, 1000
+  75, window.innerWidth / window.innerHeight, 0.1, 2000
 );
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 document.body.appendChild(renderer.domElement);
 
-// --- OrbitControls Setup ---
+// === Mobile Friendly Toggle ===
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry/i.test(navigator.userAgent);
+
+// === Post-Processing Setup (Subtle Bloom) ===
+let composer;
+if (!isMobile) {
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+
+  // Subtle bloom parameters for realistic effect
+  const bloomParams = {
+    exposure: 1,
+    bloomStrength: 0.3,
+    bloomThreshold: 0.7,
+    bloomRadius: 0.0
+  };
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    bloomParams.bloomStrength,
+    bloomParams.bloomRadius,
+    bloomParams.bloomThreshold
+  );
+  composer.addPass(bloomPass);
+}
+
+// === OrbitControls Setup ===
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+controls.rotateSpeed = 0.5; // Slower rotation for realism
 
-// --- Background Setup ---
+// === Sky Sphere (Dynamic Nebula Background) ===
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load(
-  'assets/nebula.jpg',
-  (texture) => { scene.background = texture; },
-  undefined,
-  (error) => {
-    console.error('Error loading background texture:', error);
-    scene.background = new THREE.Color(0x000011);
-  }
-);
+const skyTexture = textureLoader.load('assets/nebula.jpg');
+const skyGeometry = new THREE.SphereGeometry(1000, 32, 32);
+const skyMaterial = new THREE.MeshBasicMaterial({
+  map: skyTexture,
+  side: THREE.BackSide,
+  transparent: true,
+  opacity: 0.9 // Slightly faded so stars remain visible
+});
+const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(skyMesh);
 
-// --- Background Music ---
+// === Background Music ===
 const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
@@ -38,13 +71,13 @@ document.addEventListener('click', () => {
     audioLoader.load('assets/space_ambience.mp3', (buffer) => {
       backgroundSound.setBuffer(buffer);
       backgroundSound.setLoop(true);
-      backgroundSound.setVolume(0.3);
+      backgroundSound.setVolume(0.25);
       backgroundSound.play();
     });
   }
 }, { once: true });
 
-// --- Star Data (Projects & Skills) ---
+// === Star Data (Projects & Skills) ===
 const starsData = [
   { name: 'AI Projects', position: [5, 2, -10], url: 'projects.html', skills: ['Machine Learning', 'Python'] },
   { name: 'Web Dev', position: [-7, 3, -15], url: 'skills.html', skills: ['HTML', 'CSS', 'JavaScript'] },
@@ -52,24 +85,30 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// --- Create Stars ---
+// === Create Stars with Subtle Halo (No Lens Flare) ===
 const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
+const starGeometry = new THREE.SphereGeometry(0.3, 16, 16); // smaller central star
 starsData.forEach(data => {
-  // Create unique materials so each star can be highlighted independently
-  const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
+  // Create a dimmer material for the star core
+  const starMaterial = new THREE.MeshBasicMaterial({ color: 0x333300 });
+  
+  // Glow material for the halo effect; using lower opacity and additive blending
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     transparent: true,
-    opacity: 0.9
+    opacity: 0.2,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
   });
   
   const starGroup = new THREE.Group();
-  const star = new THREE.Mesh(starGeometry, starMaterial);
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
+  const starMesh = new THREE.Mesh(starGeometry, starMaterial);
   
-  starGroup.add(star);
-  starGroup.add(glow);
+  // Create a larger sphere for the halo effect
+  const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
+  
+  starGroup.add(starMesh);
+  starGroup.add(glowMesh);
   starGroup.position.set(...data.position);
   starGroup.userData = data;
   
@@ -77,10 +116,32 @@ starsData.forEach(data => {
   stars.push(starGroup);
 });
 
-// --- Set Initial Camera Position ---
+// === Particle System for Cosmic Dust / Nebula ===
+const particleCount = isMobile ? 2000 : 5000;
+const positions = new Float32Array(particleCount * 3);
+for (let i = 0; i < particleCount * 3; i++) {
+  positions[i] = (Math.random() - 0.5) * 300;
+}
+const particleGeometry = new THREE.BufferGeometry();
+particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+const particleTexture = textureLoader.load('https://threejs.org/examples/textures/sprites/disc.png');
+const particleMaterial = new THREE.PointsMaterial({
+  map: particleTexture,
+  color: 0xffffff,
+  size: isMobile ? 0.15 : 0.2,
+  transparent: true,
+  opacity: 0.35,
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,
+  sizeAttenuation: true
+});
+const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+scene.add(particleSystem);
+
+// === Set Initial Camera Position ===
 camera.position.z = 5;
 
-// --- Raycaster Setup for Hover & Click ---
+// === Raycaster Setup for Hover & Click ===
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('tooltip');
@@ -100,7 +161,7 @@ document.addEventListener('mousemove', (event) => {
     tooltip.style.top = (event.clientY + 10) + 'px';
     tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(', ')}`;
     
-    // Highlight the hovered star
+    // Highlight the hovered star by temporarily darkening the core
     hoveredStar.children.forEach(child => {
       if (child.material && child.material.color) {
         child.material.color.set(0xff0000);
@@ -112,7 +173,7 @@ document.addEventListener('mousemove', (event) => {
     stars.forEach(star => {
       star.children.forEach(child => {
         if (child.material && child.material.color) {
-          child.material.color.set(0xffdd00);
+          child.material.color.set(0x333300);
         }
       });
     });
@@ -134,23 +195,19 @@ document.addEventListener('click', (event) => {
   }
 });
 
+// --- Fly to Star Function (Camera Tween) ---
 function flyToStar(star) {
-  // Lock the OrbitControls target to the star's position.
   controls.target.copy(star.position);
   controls.update();
-
-  // Calculate a direction vector from the star to the current camera position.
+  
   const direction = camera.position.clone().sub(star.position).normalize();
-  // Set your desired distance from the star (adjust as needed)
   const desiredDistance = 2;
-  // Compute the new camera position so it sits desiredDistance away from the star.
   const newCameraPos = star.position.clone().add(direction.multiplyScalar(desiredDistance));
-
+  
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
     .onUpdate(() => {
-      // Ensure the controls target remains locked on the star.
       controls.target.copy(star.position);
       controls.update();
     })
@@ -159,7 +216,6 @@ function flyToStar(star) {
     })
     .start();
 }
-
 
 // --- Display Project Details ---
 function showProjectDetails(data) {
@@ -177,13 +233,22 @@ function animate() {
   TWEEN.update();
   controls.update();
   
-  // Optional: Slight drifting of stars for additional immersion
+  // Slight drifting of stars for additional immersion
   stars.forEach(star => {
     star.position.x += Math.sin(Date.now() * 0.0001 + star.position.y) * 0.002;
     star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
   });
   
-  renderer.render(scene, camera);
+  // Center the sky sphere on the camera and apply a subtle rotation for parallax
+  skyMesh.position.copy(camera.position);
+  skyMesh.rotation.y += 0.0002;
+  
+  // Render using composer if available; otherwise, use renderer
+  if (composer && !isMobile) {
+    composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
 }
 animate();
 
@@ -192,4 +257,5 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
+  if (composer) composer.setSize(window.innerWidth, window.innerHeight);
 });
