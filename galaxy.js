@@ -113,17 +113,11 @@ starsData.forEach(data => {
   stars.push(starGroup);
   
   // Add a refined lens flare effect to each star:
-  // Use a smaller size and lower intensity to avoid overbright glare.
+  // Reduced size to 50 makes it subtler. You can adjust the size and color as needed.
   const flareTexture = textureLoader.load('https://threejs.org/examples/textures/lensflare/lensflare0.png');
   const lensflare = new Lensflare();
-  
-  // Change the size parameter from 150 to a lower value, such as 50.
-  // You can also experiment with a slight opacity effect by adjusting the color's intensity.
   lensflare.addElement(new LensflareElement(flareTexture, 50, 0, new THREE.Color(0xffdd00)));
-  
-  // Optionally, if you want the lens flare to appear slightly offset (centered on the star), you can do:
   lensflare.position.copy(starGroup.position);
-  
   scene.add(lensflare);
 });
 
