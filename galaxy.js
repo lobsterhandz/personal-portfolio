@@ -65,16 +65,58 @@ const starsData = [
   { name: 'Cybersecurity', position: [-4, -2, -12], url: 'skills.html', skills: ['Penetration Testing', 'Linux'] }
 ];
 
-// --- Create Stars ---
+// --- Create Realistic Stars ---
 const stars = [];
-const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
-starsData.forEach((data) => {
-  const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
-  const glowMaterial = new THREE.MeshBasicMaterial({ color: 0xffff00, transparent: true, opacity: 0.5 });
+const starGeometry = new THREE.SphereGeometry(0.5, 32, 32);
 
+// Plasma Shader (for moving surface effects)
+const starShaderMaterial = new THREE.ShaderMaterial({
+  uniforms: {
+    time: { value: 0 },
+    color1: { value: new THREE.Color(0xffa500) }, // Orange core
+    color2: { value: new THREE.Color(0xffff00) }  // Yellow outer glow
+  },
+  vertexShader: `
+    varying vec3 vNormal;
+    void main() {
+      vNormal = normalize(normal);
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform float time;
+    uniform vec3 color1;
+    uniform vec3 color2;
+    varying vec3 vNormal;
+
+    void main() {
+      float plasma = abs(sin(time * 2.0 + vNormal.y * 10.0));
+      vec3 color = mix(color1, color2, plasma);
+      gl_FragColor = vec4(color, 1.0);
+    }
+  `,
+  side: THREE.DoubleSide
+});
+
+// Glow Layer (soft atmospheric halo)
+const glowMaterial = new THREE.MeshBasicMaterial({
+  color: 0xffaa00,
+  transparent: true,
+  opacity: 0.4,
+  blending: THREE.AdditiveBlending
+});
+
+starsData.forEach((data) => {
   const starGroup = new THREE.Group();
-  const star = new THREE.Mesh(starGeometry, starMaterial);
-  const glow = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
+
+  // Main Star
+  const star = new THREE.Mesh(starGeometry, starShaderMaterial);
+
+  // Halo Effect
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.7, 32, 32),
+    glowMaterial
+  );
 
   starGroup.add(star);
   starGroup.add(glow);
@@ -84,6 +126,14 @@ starsData.forEach((data) => {
   scene.add(starGroup);
   stars.push(starGroup);
 });
+
+// Update shader time for plasma effect
+function animateStars() {
+  starShaderMaterial.uniforms.time.value += 0.02;
+  requestAnimationFrame(animateStars);
+}
+animateStars();
+
 
 // --- Set Initial Camera Position ---
 camera.position.z = 5;
