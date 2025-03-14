@@ -7,7 +7,7 @@ document.body.appendChild(renderer.domElement);
 
 // Background Scaling & Curving Effect
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/galaxy.jpg', (texture) => {
+textureLoader.load('assets/nebula.jpg', (texture) => {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   scene.background = texture;
 });
