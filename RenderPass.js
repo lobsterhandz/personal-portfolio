@@ -1,5 +1,5 @@
 import { Color } from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
-import { Pass } from '../postprocessing/Pass.js';
+import { Pass } from './postprocessing/Pass.js';
 
 class RenderPass extends Pass {
 
