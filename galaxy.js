@@ -22,8 +22,8 @@ document.body.appendChild(renderer.domElement);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomParams = {
-  exposure: 1,
-  bloomStrength: 1.0,
+  exposure: 0.1,
+  bloomStrength: 0.2,
   bloomThreshold: 0.2,
   bloomRadius: 0.4
 };
