@@ -61,7 +61,7 @@ starsData.forEach(data => {
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     transparent: true,
-    opacity: 0.5
+    opacity: 0.9
   });
   
   const starGroup = new THREE.Group();
