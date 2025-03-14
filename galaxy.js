@@ -1,95 +1,231 @@
+// galaxy.js
+import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
+import { OrbitControls } from './OrbitControls.js';
+
 // --- Scene Setup ---
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  1000
+);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Background Scaling & Curving Effect
-const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/nebula.jpg', (texture) => {
-  texture.mapping = THREE.EquirectangularReflectionMapping;
-  scene.background = texture;
-});
+// Set the canvas as a full-screen fixed background behind UI elements.
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.top = '0';
+renderer.domElement.style.left = '0';
+renderer.domElement.style.width = '100%';
+renderer.domElement.style.height = '100%';
+renderer.domElement.style.zIndex = '0';
 
-// --- OrbitControls ---
-const controls = new THREE.OrbitControls(camera, renderer.domElement);
+// --- OrbitControls Setup ---
+const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 
-// --- Load GLTF Planets ---
-const loader = new THREE.GLTFLoader();
-const planets = [
-  { name: 'Sun', file: 'sun.glb', distance: 0, scale: 10 },
-  { name: 'Mercury', file: 'mercury.glb', distance: 15, scale: 0.5 },
-  { name: 'Venus', file: 'venus.glb', distance: 25, scale: 0.8 },
-  { name: 'Earth', file: 'earth.glb', distance: 40, scale: 1 },
-  { name: 'Moon', file: 'moon.glb', distance: 45, scale: 0.3, orbitAround: 'Earth' },
-  { name: 'Mars', file: 'mars.glb', distance: 60, scale: 0.9 },
-  { name: 'Jupiter', file: 'jupiter.glb', distance: 120, scale: 5 },
-  { name: 'Saturn', file: 'saturn.glb', distance: 180, scale: 4 },
-  { name: 'Uranus', file: 'uranus.glb', distance: 250, scale: 3 },
-  { name: 'Neptune', file: 'neptune.glb', distance: 300, scale: 3 },
-  //{ name: 'Pluto', file: 'pluto.glb', distance: 330, scale: 0.4 }
+// --- Background Setup ---
+const textureLoader = new THREE.TextureLoader();
+textureLoader.load(
+  'assets/nebula.jpg',
+  (texture) => { scene.background = texture; },
+  undefined,
+  (error) => {
+    console.error('Error loading background texture:', error);
+    scene.background = new THREE.Color(0x000011);
+  }
+);
+
+// --- Background Music ---
+const audioListener = new THREE.AudioListener();
+camera.add(audioListener);
+const backgroundSound = new THREE.Audio(audioListener);
+const audioLoader = new THREE.AudioLoader();
+document.addEventListener(
+  'click',
+  () => {
+    if (!backgroundSound.isPlaying) {
+      audioLoader.load('assets/space_ambience.mp3', (buffer) => {
+        backgroundSound.setBuffer(buffer);
+        backgroundSound.setLoop(true);
+        backgroundSound.setVolume(0.3);
+        backgroundSound.play();
+      });
+    }
+  },
+  { once: true }
+);
+
+// --- Star Data (Projects & Skills) ---
+const starsData = [
+  {
+    name: 'AI Projects',
+    position: [5, 2, -10],
+    url: 'projects.html',
+    skills: ['Machine Learning', 'Python']
+  },
+  {
+    name: 'Web Dev',
+    position: [-7, 3, -15],
+    url: 'skills.html',
+    skills: ['HTML', 'CSS', 'JavaScript']
+  },
+  {
+    name: 'Game Dev',
+    position: [3, -4, -8],
+    url: 'projects.html',
+    skills: ['Unity', 'C#', 'Pygame']
+  },
+  {
+    name: 'Cybersecurity',
+    position: [-4, -2, -12],
+    url: 'skills.html',
+    skills: ['Penetration Testing', 'Linux']
+  }
 ];
 
-const planetObjects = {};
-planets.forEach((data) => {
-  loader.load(`./assets/${data.file}`, (gltf) => { 
-    const planet = gltf.scene;
-    planet.scale.set(data.scale, data.scale, data.scale);
-    planet.position.set(data.distance, 0, 0);
-    scene.add(planet);
-    planetObjects[data.name] = planet;
+// --- Create Stars ---
+const stars = [];
+const starGeometry = new THREE.SphereGeometry(0.5, 24, 24);
+starsData.forEach((data) => {
+  // Create unique materials so each star can be highlighted independently
+  const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffdd00 });
+  const glowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffff00,
+    transparent: true,
+    opacity: 0.5
   });
+
+  const starGroup = new THREE.Group();
+  const star = new THREE.Mesh(starGeometry, starMaterial);
+  const glow = new THREE.Mesh(
+    new THREE.SphereGeometry(0.7, 24, 24),
+    glowMaterial
+  );
+
+  starGroup.add(star);
+  starGroup.add(glow);
+  starGroup.position.set(...data.position);
+  starGroup.userData = data;
+
+  scene.add(starGroup);
+  stars.push(starGroup);
 });
+
+// --- Set Initial Camera Position ---
+camera.position.z = 5;
 
 // --- Raycaster Setup for Hover & Click ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+// Grab tooltip and project details elements
 const tooltip = document.getElementById('tooltip');
 const projectDetails = document.getElementById('project-details');
 
-// --- Mobile Tap Support ---
-document.addEventListener('touchstart', onPointer, false);
-document.addEventListener('click', onPointer, false);
+// Helper function to get header height (if header exists)
+function getHeaderOffset() {
+  const header = document.getElementById('header');
+  return header ? header.offsetHeight : 0;
+}
 
-function onPointer(event) {
-  const x = event.clientX || event.touches[0].clientX;
-  const y = event.clientY || event.touches[0].clientY;
-  
-  mouse.x = (x / window.innerWidth) * 2 - 1;
-  mouse.y = -(y / window.innerHeight) * 2 + 1;
+// --- Hover Effect: Show Tooltip & Highlight Star ---
+document.addEventListener('mousemove', (event) => {
+  // Get header height offset
+  const headerOffset = getHeaderOffset();
+  // Adjust the Y coordinate by subtracting the header height (or a fraction of it)
+  const adjustedY = event.clientY - headerOffset * 0.5; // tweak this factor as needed
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
-  const intersects = raycaster.intersectObjects(Object.values(planetObjects), true);
+  const intersects = raycaster.intersectObjects(stars, true);
   if (intersects.length > 0) {
-    const selectedPlanet = intersects[0].object.parent;
-    flyToPlanet(selectedPlanet);
+    const hoveredStar = intersects[0].object.parent;
+    tooltip.style.opacity = 1;
+    tooltip.style.left = (event.clientX + 10) + 'px';
+    // Position the tooltip a bit lower to account for the header.
+    tooltip.style.top = (event.clientY + headerOffset * 0.5 + 10) + 'px';
+    tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(', ')}`;
+
+    // Highlight the hovered star.
+    hoveredStar.children.forEach((child) => {
+      if (child.material && child.material.color) {
+        child.material.color.set(0xff0000);
+      }
+    });
+  } else {
+    tooltip.style.opacity = 0;
+    // Reset all stars to their default color.
+    stars.forEach((star) => {
+      star.children.forEach((child) => {
+        if (child.material && child.material.color) {
+          child.material.color.set(0xffdd00);
+        }
+      });
+    });
+  }
+});
+
+// --- Click Event: Fly to Star & Display Project Details ---
+document.addEventListener('click', (event) => {
+  const headerOffset = getHeaderOffset();
+  const adjustedY = event.clientY - headerOffset * 0.5;
+
+  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects(stars, true);
+  if (intersects.length > 0) {
+    const selectedStar = intersects[0].object.parent;
+    flyToStar(selectedStar);
   } else {
     projectDetails.style.display = 'none';
   }
-}
+});
 
-// --- Fly to Selected Planet ---
-function flyToPlanet(planet) {
-  controls.target.copy(planet.position);
+// --- Fly to Selected Star (Locking the Camera on the Star) ---
+function flyToStar(star) {
+  // Lock the OrbitControls target to the star.
+  controls.target.copy(star.position);
   controls.update();
 
-  const direction = planet.position.clone().sub(camera.position).normalize();
-  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(10));
+  // Compute a normalized direction from the camera toward the star.
+  const direction = star.position.clone().sub(camera.position).normalize();
+  // Set your desired distance from the star (adjust as needed).
+  const desiredDistance = 2;
+  // Position the camera so the star is centered and at the desired distance.
+  const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
 
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => { controls.target.copy(planet.position); controls.update(); })
-    .onComplete(() => { showProjectDetails(planet.name); })
+    .onUpdate(() => {
+      // Continually lock the target on the star during the tween.
+      controls.target.copy(star.position);
+      controls.update();
+    })
+    .onComplete(() => {
+      showProjectDetails(star.userData);
+    })
     .start();
 }
 
-// --- Show Project Details ---
-function showProjectDetails(planetName) {
-  projectDetails.innerHTML = `<h2>${planetName}</h2><p>Click to explore this planet.</p>`;
+// --- Display Project Details ---
+function showProjectDetails(data) {
+  // Optionally, position the details box a bit below the header.
+  const headerOffset = getHeaderOffset();
+  projectDetails.style.top = (headerOffset + 20) + 'px';
+
+  projectDetails.innerHTML = `
+    <h2>${data.name}</h2>
+    <p>Skills Used: ${data.skills.join(', ')}</p>
+    <a href="${data.url}" target="_blank">View Project</a>
+  `;
   projectDetails.style.display = 'block';
 }
 
@@ -98,10 +234,11 @@ function animate() {
   requestAnimationFrame(animate);
   TWEEN.update();
   controls.update();
-  
-  // Make planets rotate for realism
-  Object.values(planetObjects).forEach((planet) => {
-    planet.rotation.y += 0.002;
+
+  // Optional: Slight drifting of stars for extra immersion.
+  stars.forEach((star) => {
+    star.position.x += Math.sin(Date.now() * 0.0001 + star.position.y) * 0.002;
+    star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
   });
 
   renderer.render(scene, camera);
