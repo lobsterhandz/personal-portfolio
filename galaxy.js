@@ -23,17 +23,20 @@ controls.dampingFactor = 0.05;
 controls.enableZoom = true;
 controls.enablePan = false; // Prevent accidental movement on mobile
 
-// --- Background Setup ---
+// --- Curved Background (Sky Sphere) ---
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/nebula.jpg', (texture) => { scene.background = texture; },
-  undefined,
-  (error) => {
-    console.error('Error loading background texture:', error);
-    scene.background = new THREE.Color(0x000011);
-  }
-);
+const backgroundTexture = textureLoader.load('assets/nebula.jpg');
 
-// --- Background Music (Now Works on Mobile & Desktop) ---
+// Create a large sphere to act as a curved background
+const skySphereGeometry = new THREE.SphereGeometry(100, 32, 32);
+const skyMaterial = new THREE.MeshBasicMaterial({
+  map: backgroundTexture,
+  side: THREE.BackSide, // Ensures the texture is visible from the inside
+});
+const skySphere = new THREE.Mesh(skySphereGeometry, skyMaterial);
+scene.add(skySphere);
+
+// --- Background Music (Mobile & Desktop) ---
 const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
@@ -50,7 +53,7 @@ function playBackgroundMusic() {
   }
 }
 
-// --- Ensure Audio Works on Mobile (User Interaction Needed) ---
+// Fix for Mobile: Music starts on first interaction
 document.addEventListener('click', playBackgroundMusic, { once: true });
 document.addEventListener('touchstart', playBackgroundMusic, { once: true });
 
@@ -170,7 +173,7 @@ function flyToStar(star) {
   controls.update();
 
   const direction = star.position.clone().sub(camera.position).normalize();
-  const desiredDistance = window.innerWidth < 768 ? 3.5 : 2.5; // Adjust distance for mobile
+  const desiredDistance = window.innerWidth < 768 ? 3.5 : 2.5;
   const newCameraPos = star.position.clone().sub(direction.multiplyScalar(desiredDistance));
 
   new TWEEN.Tween(camera.position)
