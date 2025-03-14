@@ -110,24 +110,43 @@ stars.forEach(star => {
   scene.add(lensflare);
 });
 
-// === Particle System for Cosmic Dust / Nebula ===
-const particleCount = 10000;
+// Particle System for Cosmic Dust / Nebula
+const particleCount = 5000; // Adjust count as needed
 const positions = new Float32Array(particleCount * 3);
 for (let i = 0; i < particleCount * 3; i++) {
-  // Spread particles over a large area
-  positions[i] = (Math.random() - 0.5) * 200;
+  positions[i] = (Math.random() - 0.5) * 300; // Increase spread for randomness
 }
 const particleGeometry = new THREE.BufferGeometry();
 particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+
+// Load a texture for soft, round particles (using a CDN example texture)
+const particleTexture = textureLoader.load('https://threejs.org/examples/textures/sprites/disc.png');
+
 const particleMaterial = new THREE.PointsMaterial({
+  map: particleTexture,
   color: 0xffffff,
-  size: 0.3,
+  size: 0.2,            // Smaller size for a subtle effect
   transparent: true,
-  opacity: 0.7,
-  blending: THREE.AdditiveBlending
+  opacity: 0.5,         // More subtle opacity
+  blending: THREE.AdditiveBlending,
+  depthWrite: false,    // Allows smooth blending
+  sizeAttenuation: true // Makes particles appear smaller when farther away
 });
+
 const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
 scene.add(particleSystem);
+// Load the nebula texture for the sky sphere (use your asset or a CDN link)
+const skyTexture = textureLoader.load('assets/nebula.jpg'); // or a CDN URL
+
+// Create a large sphere geometry for the sky
+const skyGeometry = new THREE.SphereGeometry(1000, 32, 32);
+const skyMaterial = new THREE.MeshBasicMaterial({
+  map: skyTexture,
+  side: THREE.BackSide // Render the inside of the sphere
+});
+const skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+scene.add(skyMesh);
+
 
 // === Set Initial Camera Position ===
 camera.position.z = 5;
@@ -235,9 +254,15 @@ function animate() {
     star.position.y += Math.cos(Date.now() * 0.0001 + star.position.x) * 0.002;
   });
   
-  // Render using the composer for bloom effect
-  composer.render();
-}
+   // Center the sky on the camera
+   skyMesh.position.copy(camera.position);
+
+   // Optionally, rotate the sky slowly for a subtle parallax effect
+   skyMesh.rotation.y += 0.0005; // Adjust this value to taste
+   
+   // Render using the composer (if using postprocessing)
+   composer.render();
+ }
 animate();
 
 // --- Handle Window Resize ---
