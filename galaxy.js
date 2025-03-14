@@ -1,141 +1,107 @@
-// galaxy.js
-import * as THREE from 'https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
-
 // --- Scene Setup ---
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  3000
-);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 3000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// --- OrbitControls ---
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.maxDistance = 2000;
-controls.minDistance = 10;
-
-// --- Background ---
+// Background Scaling & Curving Effect
 const textureLoader = new THREE.TextureLoader();
-textureLoader.load('assets/space_bg.jpg', (texture) => { 
-    scene.background = texture;
-}, undefined, (error) => { 
-    console.error('Error loading background:', error);
-    scene.background = new THREE.Color(0x000011);
+textureLoader.load('assets/space_bg.jpg', (texture) => {
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  scene.background = texture;
 });
 
-// --- Load Planets & Sun ---
-const loader = new GLTFLoader();
-const planets = [];
-const planetData = [
+// --- OrbitControls ---
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+
+// --- Load GLTF Planets ---
+const loader = new THREE.GLTFLoader();
+const planets = [
   { name: 'Sun', file: 'sun.glb', distance: 0, scale: 10 },
-  { name: 'Mercury', file: 'mercury.glb', distance: 20, scale: 0.5 },
-  { name: 'Venus', file: 'venus.glb', distance: 30, scale: 0.9 },
+  { name: 'Mercury', file: 'mercury.glb', distance: 15, scale: 0.5 },
+  { name: 'Venus', file: 'venus.glb', distance: 25, scale: 0.8 },
   { name: 'Earth', file: 'earth.glb', distance: 40, scale: 1 },
   { name: 'Moon', file: 'moon.glb', distance: 45, scale: 0.3, orbitAround: 'Earth' },
-  { name: 'Mars', file: 'mars.glb', distance: 55, scale: 0.8 },
-  { name: 'Jupiter', file: 'jupiter.glb', distance: 80, scale: 3 },
-  { name: 'Saturn', file: 'saturn.glb', distance: 110, scale: 2.5 },
-  { name: 'Uranus', file: 'uranus.glb', distance: 140, scale: 2 },
-  { name: 'Neptune', file: 'neptune.glb', distance: 170, scale: 2 },
-  { name: 'Pluto', file: 'pluto.glb', distance: 190, scale: 0.5 } // Optional
+  { name: 'Mars', file: 'mars.glb', distance: 60, scale: 0.9 },
+  { name: 'Jupiter', file: 'jupiter.glb', distance: 120, scale: 5 },
+  { name: 'Saturn', file: 'saturn.glb', distance: 180, scale: 4 },
+  { name: 'Uranus', file: 'uranus.glb', distance: 250, scale: 3 },
+  { name: 'Neptune', file: 'neptune.glb', distance: 300, scale: 3 },
+  { name: 'Pluto', file: 'pluto.glb', distance: 330, scale: 0.4 }
 ];
 
-// --- Load Models & Position Them ---
-const sun = new THREE.Object3D();
-scene.add(sun);
-
-planetData.forEach((data) => {
+const planetObjects = {};
+planets.forEach((data) => {
   loader.load(`assets/${data.file}`, (gltf) => {
     const planet = gltf.scene;
     planet.scale.set(data.scale, data.scale, data.scale);
-    
-    if (data.distance !== 0) {
-      planet.position.set(data.distance, 0, 0);
-    }
-    
-    planet.userData = data;
+    planet.position.set(data.distance, 0, 0);
     scene.add(planet);
-    planets.push(planet);
-
-    if (data.orbitAround === 'Earth') {
-      const earth = planets.find(p => p.userData.name === 'Earth');
-      if (earth) {
-        earth.add(planet);
-        planet.position.set(5, 0, 0);
-      }
-    }
+    planetObjects[data.name] = planet;
   });
 });
 
-// --- Hover Effect ---
+// --- Raycaster Setup for Hover & Click ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-document.addEventListener('mousemove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+const tooltip = document.getElementById('tooltip');
+const projectDetails = document.getElementById('project-details');
+
+// --- Mobile Tap Support ---
+document.addEventListener('touchstart', onPointer, false);
+document.addEventListener('click', onPointer, false);
+
+function onPointer(event) {
+  const x = event.clientX || event.touches[0].clientX;
+  const y = event.clientY || event.touches[0].clientY;
+  
+  mouse.x = (x / window.innerWidth) * 2 - 1;
+  mouse.y = -(y / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
-  const intersects = raycaster.intersectObjects(planets, true);
-  planets.forEach(planet => planet.scale.set(planet.userData.scale, planet.userData.scale, planet.userData.scale));
-
+  const intersects = raycaster.intersectObjects(Object.values(planetObjects), true);
   if (intersects.length > 0) {
-    const hoveredPlanet = intersects[0].object;
-    hoveredPlanet.scale.multiplyScalar(1.2);
-  }
-});
-
-// --- Click Event (Zoom to Planet) ---
-document.addEventListener('click', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  const intersects = raycaster.intersectObjects(planets, true);
-  if (intersects.length > 0) {
-    const selectedPlanet = intersects[0].object;
+    const selectedPlanet = intersects[0].object.parent;
     flyToPlanet(selectedPlanet);
+  } else {
+    projectDetails.style.display = 'none';
   }
-});
+}
 
-// --- Fly to Planet Function ---
+// --- Fly to Selected Planet ---
 function flyToPlanet(planet) {
   controls.target.copy(planet.position);
   controls.update();
 
   const direction = planet.position.clone().sub(camera.position).normalize();
-  const desiredDistance = planet.userData.scale * 5;
-  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(desiredDistance));
+  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(10));
 
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
     .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => {
-      controls.target.copy(planet.position);
-      controls.update();
-    })
+    .onUpdate(() => { controls.target.copy(planet.position); controls.update(); })
+    .onComplete(() => { showProjectDetails(planet.name); })
     .start();
 }
 
-// --- Animate Orbits ---
+// --- Show Project Details ---
+function showProjectDetails(planetName) {
+  projectDetails.innerHTML = `<h2>${planetName}</h2><p>Click to explore this planet.</p>`;
+  projectDetails.style.display = 'block';
+}
+
+// --- Animation Loop ---
 function animate() {
   requestAnimationFrame(animate);
   TWEEN.update();
   controls.update();
-
-  planets.forEach((planet) => {
-    if (planet.userData.distance > 0) {
-      const speed = 0.0005 / planet.userData.distance;
-      planet.position.x = Math.cos(Date.now() * speed) * planet.userData.distance;
-      planet.position.z = Math.sin(Date.now() * speed) * planet.userData.distance;
-    }
+  
+  // Make planets rotate for realism
+  Object.values(planetObjects).forEach((planet) => {
+    planet.rotation.y += 0.002;
   });
 
   renderer.render(scene, camera);
