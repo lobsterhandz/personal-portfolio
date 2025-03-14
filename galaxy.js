@@ -23,9 +23,9 @@ const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 const bloomParams = {
   exposure: 1,
-  bloomStrength: 1.5,
-  bloomThreshold: 0,
-  bloomRadius: 0
+  bloomStrength: 1.0,
+  bloomThreshold: 0.2,
+  bloomRadius: 0.4
 };
 const bloomPass = new UnrealBloomPass(
   new THREE.Vector2(window.innerWidth, window.innerHeight),
