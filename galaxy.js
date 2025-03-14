@@ -92,20 +92,25 @@ starsData.forEach(data => {
   // Create a dimmer material for the star core
   const starMaterial = new THREE.MeshBasicMaterial({ color: 0x333300 });
   
-  // Glow material for the halo effect; using lower opacity and additive blending
+  // Glow material for the halo effect; using lower opacity and additive blending.
+  // Disable depth test and depth write so the halo isn't clipped.
   const glowMaterial = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     transparent: true,
     opacity: 0.2,
     blending: THREE.AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    depthTest: false
   });
   
   const starGroup = new THREE.Group();
   const starMesh = new THREE.Mesh(starGeometry, starMaterial);
   
-  // Create a larger sphere for the halo effect
+  // Create a slightly larger sphere for the halo effect.
   const glowMesh = new THREE.Mesh(new THREE.SphereGeometry(0.7, 24, 24), glowMaterial);
+  
+  // Optionally, set a higher render order for the glowMesh to ensure it draws on top.
+  glowMesh.renderOrder = 1;
   
   starGroup.add(starMesh);
   starGroup.add(glowMesh);
@@ -115,6 +120,7 @@ starsData.forEach(data => {
   scene.add(starGroup);
   stars.push(starGroup);
 });
+
 
 // === Particle System for Cosmic Dust / Nebula ===
 const particleCount = isMobile ? 2000 : 5000;
