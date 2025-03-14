@@ -31,9 +31,7 @@ controls.dampingFactor = 0.05;
 const textureLoader = new THREE.TextureLoader();
 textureLoader.load(
   'assets/nebula.jpg',
-  (texture) => {
-    scene.background = texture;
-  },
+  (texture) => { scene.background = texture; },
   undefined,
   (error) => {
     console.error('Error loading background texture:', error);
@@ -123,24 +121,35 @@ camera.position.z = 5;
 // --- Raycaster Setup for Hover & Click ---
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+// Grab tooltip and project details elements
 const tooltip = document.getElementById('tooltip');
 const projectDetails = document.getElementById('project-details');
 
+// Helper function to get header height (if header exists)
+function getHeaderOffset() {
+  const header = document.getElementById('header');
+  return header ? header.offsetHeight : 0;
+}
+
 // --- Hover Effect: Show Tooltip & Highlight Star ---
 document.addEventListener('mousemove', (event) => {
+  // Get header height offset
+  const headerOffset = getHeaderOffset();
+  // Adjust the Y coordinate by subtracting the header height (or a fraction of it)
+  const adjustedY = event.clientY - headerOffset * 0.5; // tweak this factor as needed
+
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
   const intersects = raycaster.intersectObjects(stars, true);
   if (intersects.length > 0) {
     const hoveredStar = intersects[0].object.parent;
     tooltip.style.opacity = 1;
-    tooltip.style.left = event.clientX + 10 + 'px';
-    tooltip.style.top = event.clientY + 10 + 'px';
-    tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(
-      ', '
-    )}`;
+    tooltip.style.left = (event.clientX + 10) + 'px';
+    // Position the tooltip a bit lower to account for the header.
+    tooltip.style.top = (event.clientY + headerOffset * 0.5 + 10) + 'px';
+    tooltip.innerHTML = `<strong>${hoveredStar.userData.name}</strong><br>${hoveredStar.userData.skills.join(', ')}`;
 
     // Highlight the hovered star.
     hoveredStar.children.forEach((child) => {
@@ -163,9 +172,11 @@ document.addEventListener('mousemove', (event) => {
 
 // --- Click Event: Fly to Star & Display Project Details ---
 document.addEventListener('click', (event) => {
-  // Update mouse coordinates for raycasting.
+  const headerOffset = getHeaderOffset();
+  const adjustedY = event.clientY - headerOffset * 0.5;
+
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+  mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
   const intersects = raycaster.intersectObjects(stars, true);
@@ -206,6 +217,10 @@ function flyToStar(star) {
 
 // --- Display Project Details ---
 function showProjectDetails(data) {
+  // Optionally, position the details box a bit below the header.
+  const headerOffset = getHeaderOffset();
+  projectDetails.style.top = (headerOffset + 20) + 'px';
+
   projectDetails.innerHTML = `
     <h2>${data.name}</h2>
     <p>Skills Used: ${data.skills.join(', ')}</p>
