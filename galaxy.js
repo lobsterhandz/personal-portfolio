@@ -14,6 +14,14 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+// Set the canvas as a full-screen fixed background behind UI elements.
+renderer.domElement.style.position = 'fixed';
+renderer.domElement.style.top = '0';
+renderer.domElement.style.left = '0';
+renderer.domElement.style.width = '100%';
+renderer.domElement.style.height = '100%';
+renderer.domElement.style.zIndex = '0';
+
 // --- OrbitControls Setup ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
