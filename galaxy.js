@@ -33,22 +33,6 @@ textureLoader.load('assets/nebula.jpg', (texture) => { scene.background = textur
   }
 );
 
-// --- Background Music ---
-const audioListener = new THREE.AudioListener();
-camera.add(audioListener);
-const backgroundSound = new THREE.Audio(audioListener);
-const audioLoader = new THREE.AudioLoader();
-document.addEventListener('click', () => {
-  if (!backgroundSound.isPlaying) {
-    audioLoader.load('assets/space_ambience.mp3', (buffer) => {
-      backgroundSound.setBuffer(buffer);
-      backgroundSound.setLoop(true);
-      backgroundSound.setVolume(0.3);
-      backgroundSound.play();
-    });
-  }
-}, { once: true });
-
 // --- Star Data (Projects & Skills) ---
 const starsData = [
   { name: 'AI Projects', position: [5, 2, -10], url: 'projects.html', skills: ['Machine Learning', 'Python'] },
@@ -128,17 +112,25 @@ function updateMousePosition(x, y) {
 
 // --- Handle Mouse & Touch Interactions ---
 document.addEventListener('mousemove', (event) => updateMousePosition(event.clientX, event.clientY));
+
+// --- Fix for Mobile Clicks Not Working ---
 document.addEventListener('touchstart', (event) => {
   const touch = event.touches[0];
   updateMousePosition(touch.clientX, touch.clientY);
+  handleStarClick(touch.clientX, touch.clientY);
 });
 
 // --- Click Event: Fly to Star & Display Project Details ---
 document.addEventListener('click', (event) => {
-  const headerOffset = getHeaderOffset();
-  const adjustedY = event.clientY - headerOffset * 0.5;
+  handleStarClick(event.clientX, event.clientY);
+});
 
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+// --- Fix Clicks on Mobile ---
+function handleStarClick(x, y) {
+  const headerOffset = getHeaderOffset();
+  const adjustedY = y - headerOffset * 0.5;
+
+  mouse.x = (x / window.innerWidth) * 2 - 1;
   mouse.y = -(adjustedY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
 
@@ -149,7 +141,7 @@ document.addEventListener('click', (event) => {
   } else {
     projectDetails.style.display = 'none';
   }
-});
+}
 
 // --- Fly to Selected Star (Locking the Camera on the Star) ---
 function flyToStar(star) {
