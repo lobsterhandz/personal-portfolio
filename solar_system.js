@@ -2,6 +2,7 @@ import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
+// --- Logging ---
 console.log("THREE module loaded:", THREE);
 console.log("OrbitControls loaded:", OrbitControls);
 console.log("GLTFLoader loaded:", GLTFLoader);
@@ -14,7 +15,6 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   3000
 );
-// Position the camera so you can see the whole system
 camera.position.set(0, 20, 150);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -27,29 +27,53 @@ renderer.domElement.style.width = '100%';
 renderer.domElement.style.height = '100%';
 renderer.domElement.style.zIndex = '-1';
 
+// --- Lighting ---
+// Add an ambient light to illuminate all objects
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+// Add a directional light to simulate the sun’s light
+const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+directionalLight.position.set(50, 50, 50);
+scene.add(directionalLight);
+
+// --- Loading Manager ---
+const manager = new THREE.LoadingManager();
+manager.onStart = (url, itemsLoaded, itemsTotal) => {
+  console.log(`Started loading: ${url} (${itemsLoaded} of ${itemsTotal})`);
+};
+manager.onLoad = () => {
+  console.log('All assets loaded.');
+};
+manager.onProgress = (url, itemsLoaded, itemsTotal) => {
+  console.log(`Loading: ${url} (${itemsLoaded} of ${itemsTotal})`);
+};
+manager.onError = (url) => {
+  console.error(`Error loading: ${url}`);
+};
+
+// --- Background (Curved Sky Sphere) ---
+const textureLoader = new THREE.TextureLoader(manager);
+const bgGeometry = new THREE.SphereGeometry(500, 32, 32);
+const bgMaterial = new THREE.MeshBasicMaterial({
+  map: textureLoader.load('./assets/space_bg.jpg'),
+  side: THREE.BackSide, // Render inside the sphere
+});
+const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
+scene.add(bgMesh);
+
 // --- OrbitControls ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-// Set zoom limits so you can't exit the background sphere
 controls.minDistance = 50;
 controls.maxDistance = 450;
-
-// --- Background (Curved Sky Sphere) ---
-const textureLoader = new THREE.TextureLoader();
-const bgGeometry = new THREE.SphereGeometry(500, 32, 32);  // Increased radius to 500
-const bgMaterial = new THREE.MeshBasicMaterial({
-  map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide, // Render the texture inside the sphere
-});
-const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
-scene.add(bgMesh);
 
 // --- Background Music ---
 const audioListener = new THREE.AudioListener();
 camera.add(audioListener);
 const backgroundSound = new THREE.Audio(audioListener);
-const audioLoader = new THREE.AudioLoader();
+const audioLoader = new THREE.AudioLoader(manager);
 document.addEventListener('pointerdown', () => {
   if (!backgroundSound.isPlaying) {
     audioLoader.load('./assets/space_ambience.mp3', (buffer) => {
@@ -62,7 +86,6 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // --- Solar System Data ---
-// Make sure all filenames and cases match your assets folder exactly.
 const planetsData = [
   { name: 'Sun',     file: 'sun.glb',     position: [0, 0, -20],   scale: 2,   url: 'https://example.com/sun' },
   { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -40],   scale: 0.5, url: 'https://example.com/mercury' },
@@ -76,11 +99,10 @@ const planetsData = [
   { name: 'Pluto',   file: 'pluto.glb',   position: [28, 5, -300], scale: 0.5, url: 'https://example.com/pluto' }
 ];
 
-const loader = new GLTFLoader();
+const loader = new GLTFLoader(manager);
 const loadedPlanets = [];
 
 // --- Helper: Get Root Object ---
-// This ensures you always get the top-level object in case the loaded model is nested.
 function getRoot(object) {
   while (object.parent && object.parent.type !== "Scene") {
     object = object.parent;
@@ -99,6 +121,14 @@ planetsData.forEach((data) => {
     scene.add(model);
     loadedPlanets.push(model);
     console.log(`${data.name} loaded.`);
+    
+    // Optionally, attach a point light to the Sun to simulate it as a light source
+    if (data.name === 'Sun') {
+      const sunLight = new THREE.PointLight(0xffffff, 2, 500);
+      sunLight.position.copy(model.position);
+      scene.add(sunLight);
+    }
+    
   }, undefined, (error) => {
     console.error(`Error loading ${data.name}:`, error);
   });
