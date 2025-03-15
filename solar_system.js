@@ -9,9 +9,10 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  10000
+  20000
 );
-camera.position.set(0, 100, 500);
+// Adjust camera so that the expanded system is in view.
+camera.position.set(0, 200, 3000);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -29,8 +30,8 @@ const skyGeometry = new THREE.SphereGeometry(5000, 32, 32);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: skyTexture,
   side: THREE.BackSide,
-  depthWrite: false,   // Prevent writing to the z-buffer
-  depthTest: false     // Prevent the sky from interfering with other objects
+  depthWrite: false,
+  depthTest: false
 });
 const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skyDome);
@@ -47,21 +48,21 @@ scene.add(directionalLight);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
-controls.minDistance = 100;
-controls.maxDistance = 2000;
+controls.minDistance = 200;
+controls.maxDistance = 15000;
 
 // ============ Solar System Data ============
 const solarSystemData = [
-  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitAU: 0,    period: 0,    url: 'https://example.com/sun' },
-  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitAU: 0.39, period: 88,   url: 'https://example.com/mercury' },
-  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitAU: 0.72, period: 225,  url: 'https://example.com/venus' },
-  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitAU: 1,    period: 365,  url: 'https://example.com/earth' },
-  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitAU: 1.52, period: 687,  url: 'https://example.com/mars' },
-  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitAU: 5.2,  period: 4333, url: 'https://example.com/jupiter' },
-  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitAU: 9.54, period: 10759,url: 'https://example.com/saturn' },
-  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitAU: 19.2, period: 30687,url: 'https://example.com/uranus' },
-  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitAU: 30.1, period: 60190,url: 'https://example.com/neptune' },
-  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitAU: 39.5, period: 90560,url: 'https://example.com/pluto' }
+  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitAU: 0,    period: 0,     url: 'https://example.com/sun' },
+  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitAU: 0.39, period: 88,    url: 'https://example.com/mercury' },
+  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitAU: 0.72, period: 225,   url: 'https://example.com/venus' },
+  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitAU: 1,    period: 365,   url: 'https://example.com/earth' },
+  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitAU: 1.52, period: 687,   url: 'https://example.com/mars' },
+  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitAU: 5.2,  period: 4333,  url: 'https://example.com/jupiter' },
+  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitAU: 9.54, period: 10759, url: 'https://example.com/saturn' },
+  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitAU: 19.2, period: 30687, url: 'https://example.com/uranus' },
+  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitAU: 30.1, period: 60190, url: 'https://example.com/neptune' },
+  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitAU: 39.5, period: 90560, url: 'https://example.com/pluto' }
 ];
 
 const moonData = {
@@ -73,11 +74,12 @@ const moonData = {
 };
 
 // ============ Scaling Factors ============
-const sunDesiredRadius = 10;
-const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
-// Adjusted factors to make planets relatively smaller and orbits more spread out.
-const planetSizeExaggeration = 3;
-const orbitDistanceScale = 150;
+const sunDesiredRadius = 100; // Increase Sun's size to 100 units.
+const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius; 
+// Lower the exaggeration so that planets remain smaller relative to the Sun.
+const planetSizeExaggeration = 3; 
+// Increase orbitDistanceScale massively for more spacing.
+const orbitDistanceScale = 1000;
 function computeOrbitDistance(orbitAU) {
   return Math.log(1 + orbitAU) * orbitDistanceScale;
 }
@@ -89,7 +91,7 @@ const solarSystemGroup = new THREE.Group();
 scene.add(solarSystemGroup);
 const planetPivots = {};
 
-// Helper to recenter a model so its pivot is at its geometric center.
+// Helper: recenter a model so its pivot is at its geometric center.
 function recenterModel(model) {
   const box = new THREE.Box3().setFromObject(model);
   const center = new THREE.Vector3();
@@ -98,7 +100,7 @@ function recenterModel(model) {
   return model;
 }
 
-// Optional: Draw orbit path circles
+// Optional: Draw orbit path circles for visual guidance.
 function drawOrbitPath(distance) {
   const segments = 64;
   const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.2, transparent: true });
@@ -132,7 +134,8 @@ solarSystemData.forEach((data) => {
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       model.position.set(0, 0, 0);
       pivot.add(model);
-      const sunLight = new THREE.PointLight(0xffffff, 2, 1000);
+      // Add a point light at the Sun.
+      const sunLight = new THREE.PointLight(0xffffff, 2, 10000);
       sunLight.position.copy(model.position);
       pivot.add(sunLight);
     } else {
@@ -180,7 +183,7 @@ function animate() {
   
   const delta = clock.getDelta();
   
-  // Update each planet's pivot rotation for orbiting
+  // Update pivot rotations for orbiting motion.
   for (const name in planetPivots) {
     const pivot = planetPivots[name];
     if (pivot.userData.period && pivot.userData.orbitDistance !== undefined) {
@@ -189,7 +192,7 @@ function animate() {
     }
   }
   
-  // Move the sky dome to follow the camera
+  // Keep the sky dome centered on the camera.
   skyDome.position.copy(camera.position);
   
   controls.update();
