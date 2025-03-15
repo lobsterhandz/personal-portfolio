@@ -3,8 +3,8 @@ import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
 console.log("THREE module loaded:", THREE);
-console.log("OrbitControls loaded:", OrbitControls);
-console.log("GLTFLoader loaded:", GLTFLoader);
+console.log("OrbitControls module loaded:", OrbitControls);
+console.log("GLTFLoader module loaded:", GLTFLoader);
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -14,11 +14,12 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   3000
 );
+// Set camera far enough to see the whole solar system
+camera.position.set(0, 0, 100);
+
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
-// Place canvas behind UI elements
 renderer.domElement.style.position = 'fixed';
 renderer.domElement.style.top = '0';
 renderer.domElement.style.left = '0';
@@ -30,16 +31,16 @@ renderer.domElement.style.zIndex = '-1';
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-controls.minDistance = 10;
-controls.maxDistance = 190;
-camera.position.set(0, 5, 20);
+// Prevent zooming out too far or too near
+controls.minDistance = 50;
+controls.maxDistance = 200;
 
-// --- Background (Curved Skybox) ---
+// --- Curved Background (Sky Sphere) ---
 const textureLoader = new THREE.TextureLoader();
 const bgGeometry = new THREE.SphereGeometry(200, 32, 32);
 const bgMaterial = new THREE.MeshBasicMaterial({
   map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide,
+  side: THREE.BackSide, // Render inside the sphere
 });
 const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
 scene.add(bgMesh);
@@ -61,6 +62,7 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // --- Solar System Data ---
+// Make sure file names (and cases) match exactly your assets folder.
 const planetsData = [
   { name: 'Sun', file: 'sun.glb', position: [0, 0, -20], scale: 2, url: 'https://example.com/sun' },
   { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -18], scale: 0.5, url: 'https://example.com/mercury' },
@@ -77,15 +79,27 @@ const planetsData = [
 const loader = new GLTFLoader();
 const loadedPlanets = [];
 
+// --- Helper: Get Root Object ---  
+// (Ensures we get the top-level model in case GLTFLoader returns nested objects.)
+function getRoot(object) {
+  while (object.parent && object.parent.type !== "Scene") {
+    object = object.parent;
+  }
+  return object;
+}
+
 // --- Load 3D Planet Models ---
 planetsData.forEach((data) => {
   loader.load(`./assets/${data.file}`, (gltf) => {
-    const model = gltf.scene;
+    let model = gltf.scene;
+    model = getRoot(model);
     model.scale.set(data.scale, data.scale, data.scale);
     model.position.set(...data.position);
-    model.userData = { name: data.name, url: data.url, scale: data.scale };
+    // Save additional data for later use
+    model.userData = { name: data.name, url: data.url, scale: data.scale, position: data.position };
     scene.add(model);
     loadedPlanets.push(model);
+    console.log(`${data.name} loaded.`);
   }, undefined, (error) => {
     console.error(`Error loading ${data.name}:`, error);
   });
@@ -97,42 +111,47 @@ const mouse = new THREE.Vector2();
 const tooltip = document.getElementById('tooltip');
 const planetDetails = document.getElementById('planet-details');
 
-// --- Hover Effect: Show Tooltip with Planet Name ---
+// --- Hover Effect: Show Tooltip ---
 document.addEventListener('pointermove', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
   
   const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  
   if (intersects.length > 0) {
-    const hoveredPlanet = intersects[0].object.parent;
+    let hovered = getRoot(intersects[0].object);
     tooltip.style.opacity = 1;
     tooltip.style.left = `${event.clientX + 10}px`;
     tooltip.style.top = `${event.clientY + 10}px`;
-    tooltip.innerHTML = `<strong>${hoveredPlanet.userData.name}</strong>`;
+    tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
   } else {
     tooltip.style.opacity = 0;
+    // Reset scales for all loaded planets
+    loadedPlanets.forEach((planet) => {
+      const data = planetsData.find(p => p.name.toLowerCase() === planet.userData.name.toLowerCase());
+      if (data) {
+        planet.scale.set(data.scale, data.scale, data.scale);
+      }
+    });
   }
 });
 
-// --- Click Event: Zoom to Planet and Show Futuristic HUD ---
+// --- Click Event: Zoom to Planet & Show HUD ---
 document.addEventListener('pointerdown', (event) => {
   mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   raycaster.setFromCamera(mouse, camera);
   
   const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  
   if (intersects.length > 0) {
-    const selectedPlanet = intersects[0].object.parent;
-    flyToPlanet(selectedPlanet);
+    let selected = getRoot(intersects[0].object);
+    flyToPlanet(selected);
   } else {
     planetDetails.style.display = 'none';
   }
 });
 
-// --- Fly to Selected Planet: Animate Camera Movement ---
+// --- Fly to Planet: Animate Camera ---
 function flyToPlanet(planet) {
   controls.target.copy(planet.position);
   controls.update();
@@ -153,13 +172,13 @@ function flyToPlanet(planet) {
     .start();
 }
 
-// --- Show Futuristic HUD with Planet Details and Clickable Link ---
+// --- Show HUD: Planet Details ---
 function showPlanetDetails(data) {
   planetDetails.style.top = '80px';
   planetDetails.innerHTML = `
     <h2>${data.name}</h2>
-    <p>Explore more about ${data.name} by clicking the link below.</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Learn More</a>
+    <p>Learn more about ${data.name}:</p>
+    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Visit Page</a>
   `;
   planetDetails.style.display = 'block';
 }
@@ -170,7 +189,7 @@ function animate() {
   TWEEN.update();
   controls.update();
   
-  // Slowly rotate each planet for realism
+  // Rotate each planet slowly for realism
   loadedPlanets.forEach((planet) => {
     planet.rotation.y += 0.002;
   });
