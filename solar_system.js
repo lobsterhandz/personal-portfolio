@@ -14,8 +14,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   3000
 );
-// Position camera far enough to see the entire system.
-camera.position.set(0, 5, 100);
+// Position the camera so you can see the whole system
+camera.position.set(0, 20, 150);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -31,15 +31,16 @@ renderer.domElement.style.zIndex = '-1';
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+// Set zoom limits so you can't exit the background sphere
 controls.minDistance = 50;
-controls.maxDistance = 300;
+controls.maxDistance = 450;
 
 // --- Background (Curved Sky Sphere) ---
 const textureLoader = new THREE.TextureLoader();
-const bgGeometry = new THREE.SphereGeometry(200, 32, 32);
+const bgGeometry = new THREE.SphereGeometry(500, 32, 32);  // Increased radius to 500
 const bgMaterial = new THREE.MeshBasicMaterial({
   map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide,
+  side: THREE.BackSide, // Render the texture inside the sphere
 });
 const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
 scene.add(bgMesh);
@@ -61,25 +62,25 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // --- Solar System Data ---
-// Adjusted positions so that they are in increasing negative Z order.
+// Make sure all filenames and cases match your assets folder exactly.
 const planetsData = [
-  { name: 'Sun', file: 'sun.glb', position: [0, 0, -20], scale: 2, url: 'https://example.com/sun' },
-  { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -30], scale: 0.5, url: 'https://example.com/mercury' },
-  { name: 'Venus', file: 'venus.glb', position: [4, 1.5, -40], scale: 0.7, url: 'https://example.com/venus' },
-  { name: 'Earth', file: 'earth.glb', position: [6, 2, -50], scale: 0.9, url: 'https://example.com/earth' },
-  { name: 'Mars', file: 'mars.glb', position: [8, 2.5, -60], scale: 0.6, url: 'https://example.com/mars' },
-  { name: 'Jupiter', file: 'jupiter.glb', position: [12, 3, -80], scale: 1.8, url: 'https://example.com/jupiter' },
-  { name: 'Saturn', file: 'saturn.glb', position: [16, 3.5, -100], scale: 1.5, url: 'https://example.com/saturn' },
-  { name: 'Uranus', file: 'uranus.glb', position: [20, 4, -120], scale: 1.3, url: 'https://example.com/uranus' },
-  { name: 'Neptune', file: 'neptune.glb', position: [24, 4.5, -140], scale: 1.2, url: 'https://example.com/neptune' },
-  { name: 'Pluto', file: 'pluto.glb', position: [28, 5, -160], scale: 0.5, url: 'https://example.com/pluto' }
+  { name: 'Sun',     file: 'sun.glb',     position: [0, 0, -20],   scale: 2,   url: 'https://example.com/sun' },
+  { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -40],   scale: 0.5, url: 'https://example.com/mercury' },
+  { name: 'Venus',   file: 'venus.glb',   position: [4, 1.5, -60], scale: 0.7, url: 'https://example.com/venus' },
+  { name: 'Earth',   file: 'earth.glb',   position: [6, 2, -80],   scale: 0.9, url: 'https://example.com/earth' },
+  { name: 'Mars',    file: 'mars.glb',    position: [8, 2.5, -100],scale: 0.6, url: 'https://example.com/mars' },
+  { name: 'Jupiter', file: 'jupiter.glb', position: [12, 3, -140], scale: 1.8, url: 'https://example.com/jupiter' },
+  { name: 'Saturn',  file: 'saturn.glb',  position: [16, 3.5, -180], scale: 1.5, url: 'https://example.com/saturn' },
+  { name: 'Uranus',  file: 'uranus.glb',  position: [20, 4, -220], scale: 1.3, url: 'https://example.com/uranus' },
+  { name: 'Neptune', file: 'neptune.glb', position: [24, 4.5, -260], scale: 1.2, url: 'https://example.com/neptune' },
+  { name: 'Pluto',   file: 'pluto.glb',   position: [28, 5, -300], scale: 0.5, url: 'https://example.com/pluto' }
 ];
 
 const loader = new GLTFLoader();
 const loadedPlanets = [];
 
 // --- Helper: Get Root Object ---
-// This ensures that if the loaded model is nested, we get the top-level object.
+// This ensures you always get the top-level object in case the loaded model is nested.
 function getRoot(object) {
   while (object.parent && object.parent.type !== "Scene") {
     object = object.parent;
@@ -125,7 +126,6 @@ document.addEventListener('pointermove', (event) => {
     tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
   } else {
     tooltip.style.opacity = 0;
-    // Reset scales of all loaded planets to their original values:
     loadedPlanets.forEach((planet) => {
       const data = planetsData.find(p => p.name.toLowerCase() === planet.userData.name.toLowerCase());
       if (data) {
@@ -157,7 +157,7 @@ function flyToPlanet(planet) {
   controls.update();
   
   const direction = planet.position.clone().sub(camera.position).normalize();
-  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(4));
+  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(20));
   
   new TWEEN.Tween(camera.position)
     .to(newCameraPos, 2000)
@@ -189,7 +189,7 @@ function animate() {
   TWEEN.update();
   controls.update();
   
-  // Rotate each planet slowly for realism
+  // Slowly rotate each planet for realism
   loadedPlanets.forEach((planet) => {
     planet.rotation.y += 0.002;
   });

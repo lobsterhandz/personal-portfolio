@@ -4,20 +4,23 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Interactive Solar System</title>
-    <!-- External stylesheet if available -->
+    <!-- Link to your external stylesheet if you have one -->
     <link rel="stylesheet" href="css/styles.css" />
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
+      /* Basic Reset & Fullscreen Canvas */
       body {
         margin: 0;
         overflow: hidden;
         font-family: 'Roboto', sans-serif;
         background-color: black;
       }
+      canvas {
+        display: block;
+      }
       /* Futuristic HUD for planet details */
       #planet-details {
         position: absolute;
-        top: 80px;
+        top: 20px;
         left: 50%;
         transform: translateX(-50%);
         padding: 20px;
@@ -44,7 +47,7 @@
         opacity: 0;
         transition: opacity 0.3s;
       }
-      /* Header (optional) */
+      /* Example header styling (optional) */
       header {
         position: absolute;
         top: 0;
@@ -59,12 +62,22 @@
   </head>
   <body>
     <header>
-      <h1>My Interactive Solar System</h1>
-    </header>
-    <!-- Futuristic HUD for planet details -->
+        <nav>
+          <ul class="nav-links">
+            <li><a href="index.html" class="active">Home</a></li>
+            <li><a href="about.html">About</a></li>
+            <li><a href="projects.html">Projects</a></li>
+            <li><a href="skills.html">Skills</a></li>
+            <li><a href="contact.html">Contact</a></li>
+            <li><a href="galaxy.html">Explore</a></li>
+          </ul>
+        </nav>
+      </header>
+    <!-- Futuristic HUD pop-up for planet details -->
     <div id="planet-details"></div>
     <!-- Tooltip for hover info -->
     <div id="tooltip"></div>
+
     <!-- TWEEN.js for smooth animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
     <!-- Main JavaScript module -->
