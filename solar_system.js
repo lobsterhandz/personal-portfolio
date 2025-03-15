@@ -9,10 +9,10 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  2000000
+  200000
 );
-// Position the camera to view the entire system.
-camera.position.set(0, 500, 50000);
+// Position the camera closer so the Sun fills the view.
+camera.position.set(0, 100, 1000);
 camera.lookAt(0, 0, 0);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -37,25 +37,17 @@ const skyMaterial = new THREE.MeshBasicMaterial({
 const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skyDome);
 
-// ============ Lighting ============
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(100, 100, 50);
-scene.add(directionalLight);
-
 // ============ Orbit Controls ============
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
 controls.minDistance = 200;
-controls.maxDistance = 2000000;
+controls.maxDistance = 200000;
 
-// ============ GLTF Loader & Helper Function ============
+// ============ GLTF Loader & Helper ============
 const loader = new GLTFLoader();
 
-// Helper to recenter a model so its pivot is at its geometric center.
+// Helper: recenter a model so its pivot is at its geometric center.
 function recenterModel(model) {
   const box = new THREE.Box3().setFromObject(model);
   const center = new THREE.Vector3();
@@ -68,39 +60,36 @@ function recenterModel(model) {
 const sunData = {
   name: "Sun",
   file: "sun.glb",
-  radius: 696340,  // real-life radius in km (used for scaling)
+  // Real-life radius is 696340 km but we ignore that here.
   url: 'https://example.com/sun'
 };
 
-// Set the desired Sun radius in scene units (make it large so it's clearly visible)
-const sunDesiredRadius = 1000;
-// Calculate a scaling factor for the Sun
-const scaleFactor = sunDesiredRadius / sunData.radius;
+// Instead of computing a scale from real numbers, use a fixed scale value.
+const fixedSunScale = 50;
 
 loader.load(`./assets/${sunData.file}`, (gltf) => {
   let sunModel = gltf.scene;
   sunModel = recenterModel(sunModel);
   
-  // Scale the Sun model
-  sunModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+  // Apply a fixed scale so the Sun is clearly visible.
+  sunModel.scale.set(fixedSunScale, fixedSunScale, fixedSunScale);
   sunModel.position.set(0, 0, 0);
   
-  // Make the Sun emissive so it appears bright
+  // Override the material to be unlit and bright.
   sunModel.traverse((child) => {
     if (child.isMesh) {
-      child.material.emissive = new THREE.Color(0xffff00);
-      child.material.emissiveIntensity = 2.0;
+      child.material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
     }
   });
   
   scene.add(sunModel);
   
-  // Add a strong point light at the Sun's location
+  // Add a point light at the Sun's location for effect.
   const sunLight = new THREE.PointLight(0xffffff, 3, 1000000);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
   
-  console.log("Sun loaded.");
+  console.log("Sun loaded and should be visible.");
 }, undefined, (error) => {
   console.error("Error loading Sun:", error);
 });
@@ -117,7 +106,6 @@ function animate() {
 }
 animate();
 
-// ============ Handle Window Resize ============
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
