@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Interactive Solar System</title>
-    <!-- Link to your external stylesheet if you have one -->
+    <!-- External stylesheet if available -->
     <link rel="stylesheet" href="css/styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
     <style>
       /* Basic Reset & Fullscreen Canvas */
       body {
@@ -14,13 +15,44 @@
         font-family: 'Roboto', sans-serif;
         background-color: black;
       }
+      /* The canvas will be automatically added by your JS module and will fill the viewport */
       canvas {
         display: block;
+      }
+      /* Header Styling */
+      header {
+        position: absolute;
+        top: 0;
+        width: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        color: #00fffc;
+        padding: 10px;
+        text-align: center;
+        z-index: 10;
+      }
+      .nav-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .nav-links li {
+        display: inline;
+        margin: 0 15px;
+      }
+      .nav-links a {
+        text-decoration: none;
+        color: #00fffc;
+        font-size: 18px;
+        font-weight: 700;
+        transition: 0.3s;
+      }
+      .nav-links a:hover {
+        color: #ffffff;
       }
       /* Futuristic HUD for planet details */
       #planet-details {
         position: absolute;
-        top: 20px;
+        top: 80px;
         left: 50%;
         transform: translateX(-50%);
         padding: 20px;
@@ -33,7 +65,7 @@
         z-index: 10;
         display: none;
       }
-      /* Tooltip style for hover info */
+      /* Tooltip for hover info */
       #tooltip {
         position: absolute;
         background: rgba(0, 0, 0, 0.8);
@@ -47,38 +79,29 @@
         opacity: 0;
         transition: opacity 0.3s;
       }
-      /* Example header styling (optional) */
-      header {
-        position: absolute;
-        top: 0;
-        width: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        color: #00fffc;
-        padding: 10px;
-        text-align: center;
-        z-index: 10;
-      }
     </style>
   </head>
   <body>
+    <!-- Header with Navigation -->
     <header>
-        <nav>
-          <ul class="nav-links">
-            <li><a href="index.html" class="active">Home</a></li>
-            <li><a href="about.html">About</a></li>
-            <li><a href="projects.html">Projects</a></li>
-            <li><a href="skills.html">Skills</a></li>
-            <li><a href="contact.html">Contact</a></li>
-            <li><a href="galaxy.html">Explore</a></li>
-          </ul>
-        </nav>
-      </header>
-    <!-- Futuristic HUD pop-up for planet details -->
+      <nav>
+        <ul class="nav-links">
+          <li><a href="index.html" class="active">Home</a></li>
+          <li><a href="about.html">About</a></li>
+          <li><a href="projects.html">Projects</a></li>
+          <li><a href="skills.html">Skills</a></li>
+          <li><a href="contact.html">Contact</a></li>
+          <li><a href="galaxy.html">Explore</a></li>
+        </ul>
+      </nav>
+    </header>
+    
+    <!-- Futuristic HUD for Planet Details -->
     <div id="planet-details"></div>
-    <!-- Tooltip for hover info -->
+    <!-- Tooltip for Hover Info -->
     <div id="tooltip"></div>
 
-    <!-- TWEEN.js for smooth animations -->
+    <!-- TWEEN.js for smooth camera animations -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tween.js/18.6.4/tween.umd.js"></script>
     <!-- Main JavaScript module -->
     <script type="module" src="solar_system.js"></script>
