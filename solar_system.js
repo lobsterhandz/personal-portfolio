@@ -28,7 +28,9 @@ const skyTexture = new THREE.TextureLoader().load('./assets/space_bg.jpg');
 const skyGeometry = new THREE.SphereGeometry(5000, 32, 32);
 const skyMaterial = new THREE.MeshBasicMaterial({
   map: skyTexture,
-  side: THREE.BackSide
+  side: THREE.BackSide,
+  depthWrite: false,   // Prevent writing to the z-buffer
+  depthTest: false     // Prevent the sky from interfering with other objects
 });
 const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
 scene.add(skyDome);
@@ -73,8 +75,9 @@ const moonData = {
 // ============ Scaling Factors ============
 const sunDesiredRadius = 10;
 const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
-const planetSizeExaggeration = 5;
-const orbitDistanceScale = 100;
+// Adjusted factors to make planets relatively smaller and orbits more spread out.
+const planetSizeExaggeration = 3;
+const orbitDistanceScale = 150;
 function computeOrbitDistance(orbitAU) {
   return Math.log(1 + orbitAU) * orbitDistanceScale;
 }
