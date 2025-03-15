@@ -5,14 +5,15 @@ import { GLTFLoader } from './GLTFLoader.js';
 // ============ Scene, Camera, Renderer ============
 const scene = new THREE.Scene();
 
+// Increase the camera far plane so we can see the huge orbits.
 const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  20000
+  150000
 );
-// Adjust camera so that the expanded system is in view.
-camera.position.set(0, 200, 3000);
+// Move the camera back so the expanded system is in view.
+camera.position.set(0, 200, 50000);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -49,7 +50,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.1;
 controls.minDistance = 200;
-controls.maxDistance = 15000;
+controls.maxDistance = 150000;
 
 // ============ Solar System Data ============
 const solarSystemData = [
@@ -74,15 +75,18 @@ const moonData = {
 };
 
 // ============ Scaling Factors ============
-const sunDesiredRadius = 100; // Increase Sun's size to 100 units.
-const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius; 
-// Lower the exaggeration so that planets remain smaller relative to the Sun.
-const planetSizeExaggeration = 3; 
-// Increase orbitDistanceScale massively for more spacing.
-const orbitDistanceScale = 1000;
+// Increase Sun's size to 100 units.
+const sunDesiredRadius = 100;
+// Calculate the conversion factor based on the Sun's radius.
+const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
+// Keep a modest exaggeration for the planets.
+const planetSizeExaggeration = 3;
+// Increase orbitDistanceScale massively (25× the previous value, here 25000 instead of 1000)
+const orbitDistanceScale = 25000;
 function computeOrbitDistance(orbitAU) {
   return Math.log(1 + orbitAU) * orbitDistanceScale;
 }
+// Moon orbit scale remains modest.
 const moonOrbitScale = 0.05;
 
 // ============ Loaders and Containers ============
@@ -135,7 +139,7 @@ solarSystemData.forEach((data) => {
       model.position.set(0, 0, 0);
       pivot.add(model);
       // Add a point light at the Sun.
-      const sunLight = new THREE.PointLight(0xffffff, 2, 10000);
+      const sunLight = new THREE.PointLight(0xffffff, 2, 150000);
       sunLight.position.copy(model.position);
       pivot.add(sunLight);
     } else {
