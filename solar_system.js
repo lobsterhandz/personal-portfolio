@@ -3,8 +3,8 @@ import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
 console.log("THREE module loaded:", THREE);
-console.log("OrbitControls loaded:", OrbitControls);
-console.log("GLTFLoader loaded:", GLTFLoader);
+console.log("OrbitControls module loaded:", OrbitControls);
+console.log("GLTFLoader module loaded:", GLTFLoader);
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -18,7 +18,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// Place canvas behind UI elements
+// Ensure canvas is behind UI elements
 renderer.domElement.style.position = 'fixed';
 renderer.domElement.style.top = '0';
 renderer.domElement.style.left = '0';
@@ -26,18 +26,21 @@ renderer.domElement.style.width = '100%';
 renderer.domElement.style.height = '100%';
 renderer.domElement.style.zIndex = '-1';
 
-// --- Orbit Controls ---
+// --- OrbitControls ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
+// Prevent zooming too close or too far from the scene (keep camera inside the background sphere)
+controls.minDistance = 10;
+controls.maxDistance = 190;
 camera.position.set(0, 5, 20);
 
 // --- Curved Background (Sky Sphere) ---
-const textureLoader = new THREE.TextureLoader();
-const bgGeometry = new THREE.SphereGeometry(100, 32, 32);
+// Increase sphere radius so all planets remain inside
+const bgGeometry = new THREE.SphereGeometry(200, 32, 32);
 const bgMaterial = new THREE.MeshBasicMaterial({
-  map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide,
+  map: new THREE.TextureLoader().load('./assets/space_bg.jpg'),
+  side: THREE.BackSide, // Render the texture on the inside of the sphere
 });
 const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
 scene.add(bgMesh);
@@ -59,7 +62,7 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // --- Solar System Data ---
-// Ensure that file names and cases match your assets folder.
+// Ensure file names and cases match your assets folder exactly.
 const planetsData = [
   { name: 'Sun', file: 'sun.glb', position: [0, 0, -20], scale: 2, url: 'https://example.com/sun' },
   { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -18], scale: 0.5, url: 'https://example.com/mercury' },
@@ -82,7 +85,6 @@ planetsData.forEach((data) => {
     const model = gltf.scene;
     model.scale.set(data.scale, data.scale, data.scale);
     model.position.set(...data.position);
-    // Save the planet's name and URL for the HUD
     model.userData = { name: data.name, url: data.url, scale: data.scale };
     scene.add(model);
     loadedPlanets.push(model);
@@ -133,7 +135,7 @@ document.addEventListener('pointerdown', (event) => {
   }
 });
 
-// --- Fly to Planet: Animate Camera Movement ---
+// --- Fly to Selected Planet: Animate Camera Movement ---
 function flyToPlanet(planet) {
   controls.target.copy(planet.position);
   controls.update();
@@ -154,13 +156,13 @@ function flyToPlanet(planet) {
     .start();
 }
 
-// --- Show Futuristic HUD with Planet Details and Clickable Link ---
+// --- Show Futuristic HUD with Planet Details ---
 function showPlanetDetails(data) {
   planetDetails.style.top = '80px';
   planetDetails.innerHTML = `
     <h2>${data.name}</h2>
     <p>Explore more about ${data.name} by clicking the link below.</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration: underline;">Learn More</a>
+    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Learn More</a>
   `;
   planetDetails.style.display = 'block';
 }
