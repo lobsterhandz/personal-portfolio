@@ -11,7 +11,6 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   200000
 );
-// Position the camera closer so the Sun fills the view.
 camera.position.set(0, 100, 1000);
 camera.lookAt(0, 0, 0);
 
@@ -47,7 +46,6 @@ controls.maxDistance = 200000;
 // ============ GLTF Loader & Helper ============
 const loader = new GLTFLoader();
 
-// Helper: recenter a model so its pivot is at its geometric center.
 function recenterModel(model) {
   const box = new THREE.Box3().setFromObject(model);
   const center = new THREE.Vector3();
@@ -59,37 +57,38 @@ function recenterModel(model) {
 // ============ Load Only the Sun ============
 const sunData = {
   name: "Sun",
-  file: "sun.glb",
-  // Real-life radius is 696340 km but we ignore that here.
+  file: "sun.glb",  // Update this path if your file has a different name or location.
   url: 'https://example.com/sun'
 };
 
-// Instead of computing a scale from real numbers, use a fixed scale value.
+// Use a fixed scale so the Sun is clearly visible.
 const fixedSunScale = 50;
 
 loader.load(`./assets/${sunData.file}`, (gltf) => {
   let sunModel = gltf.scene;
   sunModel = recenterModel(sunModel);
   
-  // Apply a fixed scale so the Sun is clearly visible.
+  // Apply a fixed scale for visibility.
   sunModel.scale.set(fixedSunScale, fixedSunScale, fixedSunScale);
   sunModel.position.set(0, 0, 0);
   
-  // Override the material to be unlit and bright.
+  // Remove or comment out any material override so your model's original materials show.
+  /*
   sunModel.traverse((child) => {
     if (child.isMesh) {
       child.material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
     }
   });
+  */
   
   scene.add(sunModel);
   
-  // Add a point light at the Sun's location for effect.
+  // Optionally add a point light at the Sun's location.
   const sunLight = new THREE.PointLight(0xffffff, 3, 1000000);
   sunLight.position.set(0, 0, 0);
   scene.add(sunLight);
   
-  console.log("Sun loaded and should be visible.");
+  console.log("Sun loaded using your model.");
 }, undefined, (error) => {
   console.error("Error loading Sun:", error);
 });
