@@ -1,6 +1,9 @@
 import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
+console.log("THREE module loaded:", THREE);
+console.log("OrbitControls module loaded:", OrbitControls);
+console.log("GLTFLoader module loaded:", GLTFLoader);
 
 // --- Scene Setup 1---
 const scene = new THREE.Scene();
