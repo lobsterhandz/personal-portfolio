@@ -3,8 +3,8 @@ import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
 console.log("THREE module loaded:", THREE);
-console.log("OrbitControls module loaded:", OrbitControls);
-console.log("GLTFLoader module loaded:", GLTFLoader);
+console.log("OrbitControls loaded:", OrbitControls);
+console.log("GLTFLoader loaded:", GLTFLoader);
 
 // --- Scene Setup ---
 const scene = new THREE.Scene();
@@ -14,8 +14,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   3000
 );
-// Set camera far enough to see the whole solar system
-camera.position.set(0, 0, 100);
+// Position camera far enough to see the entire system.
+camera.position.set(0, 5, 100);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -31,16 +31,15 @@ renderer.domElement.style.zIndex = '-1';
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-// Prevent zooming out too far or too near
 controls.minDistance = 50;
-controls.maxDistance = 200;
+controls.maxDistance = 300;
 
-// --- Curved Background (Sky Sphere) ---
+// --- Background (Curved Sky Sphere) ---
 const textureLoader = new THREE.TextureLoader();
 const bgGeometry = new THREE.SphereGeometry(200, 32, 32);
 const bgMaterial = new THREE.MeshBasicMaterial({
   map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide, // Render inside the sphere
+  side: THREE.BackSide,
 });
 const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
 scene.add(bgMesh);
@@ -62,25 +61,25 @@ document.addEventListener('pointerdown', () => {
 }, { once: true });
 
 // --- Solar System Data ---
-// Make sure file names (and cases) match exactly your assets folder.
+// Adjusted positions so that they are in increasing negative Z order.
 const planetsData = [
   { name: 'Sun', file: 'sun.glb', position: [0, 0, -20], scale: 2, url: 'https://example.com/sun' },
-  { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -18], scale: 0.5, url: 'https://example.com/mercury' },
-  { name: 'Venus', file: 'venus.glb', position: [4, 1.5, -25], scale: 0.7, url: 'https://example.com/venus' },
-  { name: 'Earth', file: 'earth.glb', position: [6, 2, -30], scale: 0.9, url: 'https://example.com/earth' },
-  { name: 'Mars', file: 'mars.glb', position: [8, 2.5, -35], scale: 0.6, url: 'https://example.com/mars' },
-  { name: 'Jupiter', file: 'jupiter.glb', position: [12, 3, -50], scale: 1.8, url: 'https://example.com/jupiter' },
-  { name: 'Saturn', file: 'saturn.glb', position: [16, 3.5, -60], scale: 1.5, url: 'https://example.com/saturn' },
-  { name: 'Uranus', file: 'uranus.glb', position: [20, 4, -70], scale: 1.3, url: 'https://example.com/uranus' },
-  { name: 'Neptune', file: 'neptune.glb', position: [24, 4.5, -80], scale: 1.2, url: 'https://example.com/neptune' },
-  { name: 'Pluto', file: 'pluto.glb', position: [28, 5, -90], scale: 0.5, url: 'https://example.com/pluto' }
+  { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -30], scale: 0.5, url: 'https://example.com/mercury' },
+  { name: 'Venus', file: 'venus.glb', position: [4, 1.5, -40], scale: 0.7, url: 'https://example.com/venus' },
+  { name: 'Earth', file: 'earth.glb', position: [6, 2, -50], scale: 0.9, url: 'https://example.com/earth' },
+  { name: 'Mars', file: 'mars.glb', position: [8, 2.5, -60], scale: 0.6, url: 'https://example.com/mars' },
+  { name: 'Jupiter', file: 'jupiter.glb', position: [12, 3, -80], scale: 1.8, url: 'https://example.com/jupiter' },
+  { name: 'Saturn', file: 'saturn.glb', position: [16, 3.5, -100], scale: 1.5, url: 'https://example.com/saturn' },
+  { name: 'Uranus', file: 'uranus.glb', position: [20, 4, -120], scale: 1.3, url: 'https://example.com/uranus' },
+  { name: 'Neptune', file: 'neptune.glb', position: [24, 4.5, -140], scale: 1.2, url: 'https://example.com/neptune' },
+  { name: 'Pluto', file: 'pluto.glb', position: [28, 5, -160], scale: 0.5, url: 'https://example.com/pluto' }
 ];
 
 const loader = new GLTFLoader();
 const loadedPlanets = [];
 
-// --- Helper: Get Root Object ---  
-// (Ensures we get the top-level model in case GLTFLoader returns nested objects.)
+// --- Helper: Get Root Object ---
+// This ensures that if the loaded model is nested, we get the top-level object.
 function getRoot(object) {
   while (object.parent && object.parent.type !== "Scene") {
     object = object.parent;
@@ -95,7 +94,6 @@ planetsData.forEach((data) => {
     model = getRoot(model);
     model.scale.set(data.scale, data.scale, data.scale);
     model.position.set(...data.position);
-    // Save additional data for later use
     model.userData = { name: data.name, url: data.url, scale: data.scale, position: data.position };
     scene.add(model);
     loadedPlanets.push(model);
@@ -118,6 +116,7 @@ document.addEventListener('pointermove', (event) => {
   raycaster.setFromCamera(mouse, camera);
   
   const intersects = raycaster.intersectObjects(loadedPlanets, true);
+  
   if (intersects.length > 0) {
     let hovered = getRoot(intersects[0].object);
     tooltip.style.opacity = 1;
@@ -126,7 +125,7 @@ document.addEventListener('pointermove', (event) => {
     tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
   } else {
     tooltip.style.opacity = 0;
-    // Reset scales for all loaded planets
+    // Reset scales of all loaded planets to their original values:
     loadedPlanets.forEach((planet) => {
       const data = planetsData.find(p => p.name.toLowerCase() === planet.userData.name.toLowerCase());
       if (data) {
@@ -143,6 +142,7 @@ document.addEventListener('pointerdown', (event) => {
   raycaster.setFromCamera(mouse, camera);
   
   const intersects = raycaster.intersectObjects(loadedPlanets, true);
+  
   if (intersects.length > 0) {
     let selected = getRoot(intersects[0].object);
     flyToPlanet(selected);
@@ -151,7 +151,7 @@ document.addEventListener('pointerdown', (event) => {
   }
 });
 
-// --- Fly to Planet: Animate Camera ---
+// --- Fly to Planet: Animate Camera Movement ---
 function flyToPlanet(planet) {
   controls.target.copy(planet.position);
   controls.update();
@@ -172,13 +172,13 @@ function flyToPlanet(planet) {
     .start();
 }
 
-// --- Show HUD: Planet Details ---
+// --- Show Futuristic HUD with Planet Details ---
 function showPlanetDetails(data) {
   planetDetails.style.top = '80px';
   planetDetails.innerHTML = `
     <h2>${data.name}</h2>
-    <p>Learn more about ${data.name}:</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Visit Page</a>
+    <p>Explore more about ${data.name} by clicking the link below.</p>
+    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Learn More</a>
   `;
   planetDetails.style.display = 'block';
 }
