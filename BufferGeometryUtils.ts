@@ -13,7 +13,7 @@ import {
   Points,
   Material,
   SkinnedMesh,
-} from 'three'
+} from './three.module.js'
 
 import { getWithKey } from './helpers'
 import type { TypedArrayConstructors, TypedArray } from './shared'
