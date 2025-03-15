@@ -2,16 +2,23 @@ import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
-// --- Scene Setup ---
+// ============ Scene, Camera, Renderer ============
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
-camera.position.set(0, 50, 200);
+
+const camera = new THREE.PerspectiveCamera(
+  75,
+  window.innerWidth / window.innerHeight,
+  0.1,
+  10000
+);
+// Position the camera so that it sees the whole system.
+// (You may adjust this value to capture more or less of the scene.)
+camera.position.set(0, 100, 500);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-
-// --- Renderer Styling (Full Screen Background) ---
+// Style the canvas as a full-screen background.
 renderer.domElement.style.position = 'fixed';
 renderer.domElement.style.top = '0';
 renderer.domElement.style.left = '0';
@@ -19,226 +26,193 @@ renderer.domElement.style.width = '100%';
 renderer.domElement.style.height = '100%';
 renderer.domElement.style.zIndex = '-1';
 
-// --- Lighting ---
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+// ============ Sky Dome (Attached to Camera) ============
+const skyTexture = new THREE.TextureLoader().load('./assets/space_bg.jpg');
+const skyGeometry = new THREE.SphereGeometry(5000, 32, 32);
+const skyMaterial = new THREE.MeshBasicMaterial({
+  map: skyTexture,
+  side: THREE.BackSide
+});
+const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
+// Attach the sky dome to the camera so it always stays "at infinity"
+camera.add(skyDome);
+
+// ============ Lighting ============
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(50, 50, 50);
+directionalLight.position.set(100, 100, 50);
 scene.add(directionalLight);
 
-// --- Background (Curved Space Sphere) ---
-const textureLoader = new THREE.TextureLoader();
-const bgGeometry = new THREE.SphereGeometry(500, 32, 32);
-const bgMaterial = new THREE.MeshBasicMaterial({
-  map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide
-});
-const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
-scene.add(bgMesh);
-
-// --- OrbitControls ---
+// ============ Orbit Controls ============
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.minDistance = 50;
-controls.maxDistance = 1000;
+controls.dampingFactor = 0.1;
+controls.minDistance = 100;
+controls.maxDistance = 2000;
 
-// --- Background Music ---
-const audioListener = new THREE.AudioListener();
-camera.add(audioListener);
-const backgroundSound = new THREE.Audio(audioListener);
-const audioLoader = new THREE.AudioLoader();
-document.addEventListener('pointerdown', () => {
-  if (!backgroundSound.isPlaying) {
-    audioLoader.load('./assets/space_ambience.mp3', (buffer) => {
-      backgroundSound.setBuffer(buffer);
-      backgroundSound.setLoop(true);
-      backgroundSound.setVolume(0.3);
-      backgroundSound.play();
-    });
-  }
-}, { once: true });
-
-// --- Solar System Data ---
-// Radii in km and orbital distances in AU (approximate values)
-// Note: In reality the size differences are enormous so we use scaling factors.
+// ============ Solar System Data ============
+// Data for the Sun and planets (excluding the Moon) with approximate values.
+// orbitAU: average orbital distance in AU (astronomical units)
+// real radii: in kilometers
 const solarSystemData = [
-  { name: "Sun",     file: "sun.glb",     radius: 696340, orbit: 0,    url: 'https://example.com/sun' },
-  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbit: 0.39, url: 'https://example.com/mercury' },
-  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbit: 0.72, url: 'https://example.com/venus' },
-  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbit: 1,    url: 'https://example.com/earth' },
-  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbit: 1.52, url: 'https://example.com/mars' },
-  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbit: 5.2,  url: 'https://example.com/jupiter' },
-  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbit: 9.54, url: 'https://example.com/saturn' },
-  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbit: 19.2, url: 'https://example.com/uranus' },
-  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbit: 30.1, url: 'https://example.com/neptune' },
-  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbit: 39.5, url: 'https://example.com/pluto' }
+  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitAU: 0,    period: 0,   url: 'https://example.com/sun' },
+  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitAU: 0.39, period: 88,  url: 'https://example.com/mercury' },
+  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitAU: 0.72, period: 225, url: 'https://example.com/venus' },
+  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitAU: 1,    period: 365, url: 'https://example.com/earth' },
+  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitAU: 1.52, period: 687, url: 'https://example.com/mars' },
+  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitAU: 5.2,  period: 4333, url: 'https://example.com/jupiter' },
+  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitAU: 9.54, period: 10759, url: 'https://example.com/saturn' },
+  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitAU: 19.2, period: 30687, url: 'https://example.com/uranus' },
+  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitAU: 30.1, period: 60190, url: 'https://example.com/neptune' },
+  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitAU: 39.5, period: 90560, url: 'https://example.com/pluto' }
 ];
 
-// --- Scaling Factors ---
-// Fix the Sun’s radius to a chosen scene unit (e.g., 10 units)
+// Moon data (orbits Earth)
+const moonData = {
+  name: "Moon",
+  file: "moon.glb",
+  radius: 1737, // km
+  orbitDistanceKm: 384400, // average distance from Earth in km
+  period: 27 // days (for rotation speed)
+};
+
+// ============ Scaling Factors ============
+// We fix the Sun’s radius to a desired value in scene units.
 const sunDesiredRadius = 10;
-// Basic conversion for size (km -> scene units) based on the Sun
+// Conversion for sizes (km -> scene units) based on the Sun.
 const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
-// Exaggeration factor for planet sizes (since they become tiny compared to the Sun)
-const planetSizeExaggeration = 10;
-// Orbit scale factor to bring astronomical distances into view (AU -> scene units)
-const orbitScale = 50;
+// Exaggeration factor for planet sizes (planets are tiny compared to the Sun).
+const planetSizeExaggeration = 5;
 
-// --- GLTF Loader & Container ---
+// For distances, we want to compress the huge AU values into a beautiful scene.
+// Instead of a linear scale, we use a logarithmic compression so that inner planets aren’t too close and outer ones aren’t too far.
+const orbitDistanceScale = 100; // adjust to taste
+function computeOrbitDistance(orbitAU) {
+  // Use logarithmic scaling: distance = log(1 + orbitAU) * orbitDistanceScale.
+  return Math.log(1 + orbitAU) * orbitDistanceScale;
+}
+
+// For the Moon, we compute its orbit distance relative to Earth in scene units.
+// We choose an arbitrary scale so that the Moon’s orbit is visible relative to the Earth’s size.
+const moonOrbitScale = 0.05; // tweak as needed
+
+// ============ Loaders and Containers ============
 const loader = new GLTFLoader();
-const loadedPlanets = [];
-const planetGroup = new THREE.Group();
-scene.add(planetGroup);
 
-// --- Helper: Get Root Object ---
-function getRoot(object) {
-  while (object.parent && object.parent.type !== "Scene") {
-    object = object.parent;
-  }
-  return object;
+// Group to hold all solar system pivots (for orbital rotations)
+const solarSystemGroup = new THREE.Group();
+scene.add(solarSystemGroup);
+
+// We will store a reference to each planet’s pivot for rotation.
+const planetPivots = {};
+
+// ============ Helper: Recenter Model ============
+function recenterModel(model) {
+  const box = new THREE.Box3().setFromObject(model);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  model.position.sub(center);
+  return model;
 }
 
-// --- Draw Orbit Paths (Optional) ---
-function drawOrbitPath(distance) {
-  const segments = 64;
-  const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.2, transparent: true });
-  const geometry = new THREE.BufferGeometry();
-  const points = [];
-  for (let i = 0; i <= segments; i++) {
-    const theta = (i / segments) * Math.PI * 2;
-    points.push(new THREE.Vector3(distance * Math.cos(theta), 0, distance * Math.sin(theta)));
-  }
-  geometry.setFromPoints(points);
-  const orbitLine = new THREE.Line(geometry, material);
-  scene.add(orbitLine);
-}
-
-// --- Load Models & Arrange Orbits ---
-solarSystemData.forEach((data, index) => {
+// ============ Load Sun and Planets ============
+solarSystemData.forEach((data) => {
+  // Create an empty pivot for this planet to orbit around the Sun.
+  const pivot = new THREE.Group();
+  solarSystemGroup.add(pivot);
+  planetPivots[data.name] = pivot;
+  
   loader.load(`./assets/${data.file}`, (gltf) => {
     let model = gltf.scene;
-    model = getRoot(model);
+    model = recenterModel(model);
     
     if (data.name === "Sun") {
-      // Scale the Sun so its radius equals sunDesiredRadius
+      // Scale and position the Sun at the center.
       const scaleFactor = sunDesiredRadius / data.radius;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       model.position.set(0, 0, 0);
-      
-      // Attach a point light to the Sun to illuminate the scene
-      const sunLight = new THREE.PointLight(0xffffff, 2, 500);
+      pivot.add(model);
+      // Optionally, add a point light at the Sun.
+      const sunLight = new THREE.PointLight(0xffffff, 2, 1000);
       sunLight.position.copy(model.position);
-      scene.add(sunLight);
+      pivot.add(sunLight);
     } else {
-      // Scale planets relative to the Sun and exaggerate their sizes
+      // Scale the planet relative to the Sun.
       const scaleFactor = (data.radius * radiusScaleFactor) * planetSizeExaggeration;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       
-      // Calculate orbital position: place the planet on a circular orbit around the Sun.
-      // Distribute the planets evenly by angle (excluding the Sun at index 0).
-      const angle = (index - 1) * (Math.PI * 2 / (solarSystemData.length - 1));
-      const distance = data.orbit * orbitScale;
-      model.position.set(distance * Math.cos(angle), 0, distance * Math.sin(angle));
+      // Compute the orbit distance using our logarithmic function.
+      const orbitDistance = computeOrbitDistance(data.orbitAU);
+      // Position the planet along the positive X axis (its pivot will handle rotation).
+      model.position.set(orbitDistance, 0, 0);
+      pivot.add(model);
       
-      // Optionally, draw the orbit path for visual guidance.
-      drawOrbitPath(distance);
+      // Save the orbit distance and period on the pivot for rotation speed.
+      pivot.userData = {
+        orbitDistance: orbitDistance,
+        period: data.period // in days (we'll scale this arbitrarily)
+      };
+      
+      // If the planet is Earth, load and attach the Moon.
+      if (data.name === "Earth") {
+        const earthPivot = pivot; // planet pivot for Earth
+        // Create a pivot for the Moon around the Earth.
+        const moonPivot = new THREE.Group();
+        earthPivot.add(moonPivot);
+        moonPivot.position.copy(model.position); // center it on Earth
+        
+        loader.load(`./assets/${moonData.file}`, (gltfMoon) => {
+          let moonModel = gltfMoon.scene;
+          moonModel = recenterModel(moonModel);
+          // Scale the Moon relative to the Sun (or relative to Earth)
+          const moonScale = ((moonData.radius * radiusScaleFactor) * planetSizeExaggeration);
+          moonModel.scale.set(moonScale, moonScale, moonScale);
+          // Set the Moon’s orbit distance using its km distance scaled down.
+          const moonOrbitDistance = moonData.orbitDistanceKm * moonOrbitScale;
+          moonModel.position.set(moonOrbitDistance, 0, 0);
+          moonPivot.add(moonModel);
+          // Save data for moon rotation.
+          moonPivot.userData = { period: moonData.period };
+          // Store reference for animation.
+          planetPivots["Moon"] = moonPivot;
+        });
+      }
     }
     
-    // Store metadata and add the model to the group
-    model.userData = { name: data.name, url: data.url };
-    planetGroup.add(model);
-    loadedPlanets.push(model);
-    
-    console.log(`${data.name} loaded. Scale: ${model.scale.x.toFixed(2)}; Position: (${model.position.x.toFixed(2)}, ${model.position.y.toFixed(2)}, ${model.position.z.toFixed(2)})`);
+    console.log(`${data.name} loaded.`);
   }, undefined, (error) => {
     console.error(`Error loading ${data.name}:`, error);
   });
 });
 
-// --- Raycaster Setup for Tooltip & Click Events ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const tooltip = document.getElementById('tooltip');
-const planetDetails = document.getElementById('planet-details');
-
-// --- Helper: Fly To Planet (Camera Animation) ---
-// Ensure TWEEN.js is loaded on your page for this to work.
-function flyToPlanet(planet) {
-  controls.target.copy(planet.position);
-  controls.update();
-  
-  const direction = planet.position.clone().sub(camera.position).normalize();
-  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(20));
-  
-  new TWEEN.Tween(camera.position)
-    .to({ x: newCameraPos.x, y: newCameraPos.y, z: newCameraPos.z }, 2000)
-    .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => {
-      controls.target.copy(planet.position);
-      controls.update();
-    })
-    .onComplete(() => {
-      showPlanetDetails(planet.userData);
-    })
-    .start();
-}
-
-function showPlanetDetails(data) {
-  planetDetails.style.top = '80px';
-  planetDetails.innerHTML = `
-    <h2>${data.name}</h2>
-    <p>Explore more about ${data.name} by clicking the link below.</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Learn More</a>
-  `;
-  planetDetails.style.display = 'block';
-}
-
-// --- Hover Effect: Show Tooltip ---
-document.addEventListener('pointermove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  
-  if (intersects.length > 0) {
-    const hovered = getRoot(intersects[0].object);
-    tooltip.style.opacity = 1;
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
-    tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
-  } else {
-    tooltip.style.opacity = 0;
-  }
-});
-
-// --- Click Event: Fly to Planet & Show Details ---
-document.addEventListener('pointerdown', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  if (intersects.length > 0) {
-    const selected = getRoot(intersects[0].object);
-    flyToPlanet(selected);
-  } else {
-    planetDetails.style.display = 'none';
-  }
-});
-
-// --- Animation Loop ---
+// ============ Animation Loop ============
+const clock = new THREE.Clock();
 function animate() {
   requestAnimationFrame(animate);
-  TWEEN.update();
+  
+  const delta = clock.getDelta();
+  
+  // Rotate each planet pivot around the Sun.
+  // We use a simple angular speed computed from the period.
+  for (const name in planetPivots) {
+    const pivot = planetPivots[name];
+    if (pivot.userData.period && pivot.userData.orbitDistance !== undefined) {
+      // For simplicity, define a base angular speed.
+      // (Adjust the divisor to control the overall speed.)
+      const angularSpeed = (delta * 0.05) / pivot.userData.period;
+      pivot.rotation.y += angularSpeed;
+    }
+  }
+  
+  // Render the scene.
   controls.update();
   renderer.render(scene, camera);
 }
 animate();
 
-// --- Handle Window Resize ---
+// ============ Handle Window Resize ============
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
