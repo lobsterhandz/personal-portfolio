@@ -2,107 +2,59 @@ import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
 
-// --- Logging ---
-console.log("THREE module loaded:", THREE);
-console.log("OrbitControls loaded:", OrbitControls);
-console.log("GLTFLoader loaded:", GLTFLoader);
-
 // --- Scene Setup ---
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  3000
-);
-camera.position.set(0, 20, 150);
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 10000);
+camera.position.set(0, 50, 200);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
-renderer.domElement.style.position = 'fixed';
-renderer.domElement.style.top = '0';
-renderer.domElement.style.left = '0';
-renderer.domElement.style.width = '100%';
-renderer.domElement.style.height = '100%';
-renderer.domElement.style.zIndex = '-1';
 
 // --- Lighting ---
-// Add an ambient light to illuminate all objects
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
 scene.add(ambientLight);
 
-// Add a directional light to simulate the sun’s light
 const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(50, 50, 50);
 scene.add(directionalLight);
 
-// --- Loading Manager ---
-const manager = new THREE.LoadingManager();
-manager.onStart = (url, itemsLoaded, itemsTotal) => {
-  console.log(`Started loading: ${url} (${itemsLoaded} of ${itemsTotal})`);
-};
-manager.onLoad = () => {
-  console.log('All assets loaded.');
-};
-manager.onProgress = (url, itemsLoaded, itemsTotal) => {
-  console.log(`Loading: ${url} (${itemsLoaded} of ${itemsTotal})`);
-};
-manager.onError = (url) => {
-  console.error(`Error loading: ${url}`);
-};
-
-// --- Background (Curved Sky Sphere) ---
-const textureLoader = new THREE.TextureLoader(manager);
-const bgGeometry = new THREE.SphereGeometry(500, 32, 32);
-const bgMaterial = new THREE.MeshBasicMaterial({
-  map: textureLoader.load('./assets/space_bg.jpg'),
-  side: THREE.BackSide, // Render inside the sphere
-});
-const bgMesh = new THREE.Mesh(bgGeometry, bgMaterial);
-scene.add(bgMesh);
-
 // --- OrbitControls ---
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.minDistance = 50;
-controls.maxDistance = 450;
-
-// --- Background Music ---
-const audioListener = new THREE.AudioListener();
-camera.add(audioListener);
-const backgroundSound = new THREE.Audio(audioListener);
-const audioLoader = new THREE.AudioLoader(manager);
-document.addEventListener('pointerdown', () => {
-  if (!backgroundSound.isPlaying) {
-    audioLoader.load('./assets/space_ambience.mp3', (buffer) => {
-      backgroundSound.setBuffer(buffer);
-      backgroundSound.setLoop(true);
-      backgroundSound.setVolume(0.3);
-      backgroundSound.play();
-    });
-  }
-}, { once: true });
 
 // --- Solar System Data ---
-const planetsData = [
-  { name: 'Sun',     file: 'sun.glb',     position: [0, 0, -20],   scale: 2,   url: 'https://example.com/sun' },
-  { name: 'Mercury', file: 'mercury.glb', position: [2, 1, -40],   scale: 0.5, url: 'https://example.com/mercury' },
-  { name: 'Venus',   file: 'venus.glb',   position: [4, 1.5, -60], scale: 0.7, url: 'https://example.com/venus' },
-  { name: 'Earth',   file: 'earth.glb',   position: [6, 2, -80],   scale: 0.9, url: 'https://example.com/earth' },
-  { name: 'Mars',    file: 'mars.glb',    position: [8, 2.5, -100],scale: 0.6, url: 'https://example.com/mars' },
-  { name: 'Jupiter', file: 'jupiter.glb', position: [12, 3, -140], scale: 1.8, url: 'https://example.com/jupiter' },
-  { name: 'Saturn',  file: 'saturn.glb',  position: [16, 3.5, -180], scale: 1.5, url: 'https://example.com/saturn' },
-  { name: 'Uranus',  file: 'uranus.glb',  position: [20, 4, -220], scale: 1.3, url: 'https://example.com/uranus' },
-  { name: 'Neptune', file: 'neptune.glb', position: [24, 4.5, -260], scale: 1.2, url: 'https://example.com/neptune' },
-  { name: 'Pluto',   file: 'pluto.glb',   position: [28, 5, -300], scale: 0.5, url: 'https://example.com/pluto' }
+// Radii in km and orbits in AU (approximate values)
+const solarSystemData = [
+  { name: "Sun",     file: "sun.glb",     radius: 696340, orbit: 0,    url: 'https://example.com/sun' },
+  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbit: 0.39, url: 'https://example.com/mercury' },
+  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbit: 0.72, url: 'https://example.com/venus' },
+  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbit: 1,    url: 'https://example.com/earth' },
+  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbit: 1.52, url: 'https://example.com/mars' },
+  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbit: 5.2,  url: 'https://example.com/jupiter' },
+  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbit: 9.54, url: 'https://example.com/saturn' },
+  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbit: 19.2, url: 'https://example.com/uranus' },
+  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbit: 30.1, url: 'https://example.com/neptune' },
+  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbit: 39.5, url: 'https://example.com/pluto' }
 ];
 
-const loader = new GLTFLoader(manager);
-const loadedPlanets = [];
+// --- Scaling Factors ---
+// We set the Sun’s desired radius in scene units:
+const sunDesiredRadius = 10; // e.g., 10 units in your scene
+// Calculate a basic conversion factor for sizes (km -> scene units) based on the Sun:
+const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
+// For visual purposes, we exaggerate planet sizes relative to the Sun:
+const planetSizeExaggeration = 10;  
+// Scale for orbital distances (AU -> scene units); adjust to fit your scene
+const orbitScale = 50;
 
-// --- Helper: Get Root Object ---
+// --- GLTF Loader ---
+const loader = new GLTFLoader();
+const loadedPlanets = [];
+const planetGroup = new THREE.Group();
+scene.add(planetGroup);
+
+// Helper: Get the top-level object in a model
 function getRoot(object) {
   while (object.parent && object.parent.type !== "Scene") {
     object = object.parent;
@@ -110,123 +62,54 @@ function getRoot(object) {
   return object;
 }
 
-// --- Load 3D Planet Models ---
-planetsData.forEach((data) => {
+// --- Load Models & Arrange Orbits ---
+solarSystemData.forEach((data, index) => {
   loader.load(`./assets/${data.file}`, (gltf) => {
     let model = gltf.scene;
     model = getRoot(model);
-    model.scale.set(data.scale, data.scale, data.scale);
-    model.position.set(...data.position);
-    model.userData = { name: data.name, url: data.url, scale: data.scale, position: data.position };
-    scene.add(model);
-    loadedPlanets.push(model);
-    console.log(`${data.name} loaded.`);
     
-    // Optionally, attach a point light to the Sun to simulate it as a light source
-    if (data.name === 'Sun') {
+    if (data.name === "Sun") {
+      // For the Sun: set scale so its radius becomes sunDesiredRadius
+      const scaleFactor = sunDesiredRadius / data.radius;
+      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      model.position.set(0, 0, 0);
+    } else {
+      // For planets: scale relative to the Sun, then exaggerate for visibility
+      const scaleFactor = (data.radius * radiusScaleFactor) * planetSizeExaggeration;
+      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      
+      // Arrange on a circular orbit around the Sun:
+      // Compute an angle to distribute the planets evenly.
+      // (Subtract 1 from index because index 0 is the Sun)
+      let angle = (index - 1) * (Math.PI * 2 / (solarSystemData.length - 1));
+      // Orbit distance in scene units
+      let distance = data.orbit * orbitScale;
+      model.position.set(distance * Math.cos(angle), 0, distance * Math.sin(angle));
+    }
+    
+    model.userData = { name: data.name, url: data.url };
+    planetGroup.add(model);
+    loadedPlanets.push(model);
+    
+    console.log(`${data.name} loaded. Scale: ${model.scale.x.toFixed(2)}; Position: (${model.position.x.toFixed(2)}, ${model.position.y.toFixed(2)}, ${model.position.z.toFixed(2)})`);
+    
+    // Optionally, attach a light to the Sun to illuminate the scene
+    if (data.name === "Sun") {
       const sunLight = new THREE.PointLight(0xffffff, 2, 500);
       sunLight.position.copy(model.position);
       scene.add(sunLight);
     }
-    
   }, undefined, (error) => {
     console.error(`Error loading ${data.name}:`, error);
   });
 });
 
-// --- Raycaster Setup ---
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const tooltip = document.getElementById('tooltip');
-const planetDetails = document.getElementById('planet-details');
-
-// --- Hover Effect: Show Tooltip ---
-document.addEventListener('pointermove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  
-  if (intersects.length > 0) {
-    let hovered = getRoot(intersects[0].object);
-    tooltip.style.opacity = 1;
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
-    tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
-  } else {
-    tooltip.style.opacity = 0;
-    loadedPlanets.forEach((planet) => {
-      const data = planetsData.find(p => p.name.toLowerCase() === planet.userData.name.toLowerCase());
-      if (data) {
-        planet.scale.set(data.scale, data.scale, data.scale);
-      }
-    });
-  }
-});
-
-// --- Click Event: Zoom to Planet & Show HUD ---
-document.addEventListener('pointerdown', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-  
-  const intersects = raycaster.intersectObjects(loadedPlanets, true);
-  
-  if (intersects.length > 0) {
-    let selected = getRoot(intersects[0].object);
-    flyToPlanet(selected);
-  } else {
-    planetDetails.style.display = 'none';
-  }
-});
-
-// --- Fly to Planet: Animate Camera Movement ---
-function flyToPlanet(planet) {
-  controls.target.copy(planet.position);
-  controls.update();
-  
-  const direction = planet.position.clone().sub(camera.position).normalize();
-  const newCameraPos = planet.position.clone().sub(direction.multiplyScalar(20));
-  
-  new TWEEN.Tween(camera.position)
-    .to(newCameraPos, 2000)
-    .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => {
-      controls.target.copy(planet.position);
-      controls.update();
-    })
-    .onComplete(() => {
-      showPlanetDetails(planet.userData);
-    })
-    .start();
-}
-
-// --- Show Futuristic HUD with Planet Details ---
-function showPlanetDetails(data) {
-  planetDetails.style.top = '80px';
-  planetDetails.innerHTML = `
-    <h2>${data.name}</h2>
-    <p>Explore more about ${data.name} by clicking the link below.</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Learn More</a>
-  `;
-  planetDetails.style.display = 'block';
-}
-
 // --- Animation Loop ---
 function animate() {
   requestAnimationFrame(animate);
-  TWEEN.update();
   controls.update();
-  
-  // Slowly rotate each planet for realism
-  loadedPlanets.forEach((planet) => {
-    planet.rotation.y += 0.002;
-  });
-  
   renderer.render(scene, camera);
 }
-
 animate();
 
 // --- Handle Window Resize ---
