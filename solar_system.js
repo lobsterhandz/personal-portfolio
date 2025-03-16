@@ -13,6 +13,7 @@ const camera = new THREE.PerspectiveCamera(
   3000000
 );
 // Position the camera to see the entire system.
+camera.far = 4000000; // increase far clipping distance
 camera.position.set(0, 1000, 250000);
 camera.lookAt(0, 0, 0);
 
@@ -86,12 +87,15 @@ const planetSizeExaggeration = 3;
 // For inner planets (orbitAU ≤ 2), spread them linearly.
 // For outer planets, use a larger multiplier.
 function computeOrbitDistance(orbitAU) {
-  if (orbitAU <= 2) {
-    return orbitAU * 275000; // inner scaling
-  } else {
-    return orbitAU * 175000; // outer scaling for gas giants, etc.
+    if (orbitAU < 1) {
+      return orbitAU * 500000; // dramatically widen the very inner circle
+    } else if (orbitAU <= 2) {
+      return orbitAU * 275000; // inner scaling for the next inner planets
+    } else {
+      return orbitAU * 175000; // outer scaling for gas giants, etc.
+    }
   }
-}
+  
 
 const moonOrbitScale = 0.02;
 
