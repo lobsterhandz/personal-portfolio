@@ -1,378 +1,184 @@
-import * as THREE from './three.module.js';
-import { OrbitControls } from './OrbitControls.js';
-import { GLTFLoader } from './GLTFLoader.js';
-// Ensure TWEEN is loaded via a script tag if you later want tweening
+/*****************************************************************************
+ *  A Very Simple Solar System-Like Demo
+ *  
+ *  - All bodies (Sun + Planets) have the same sphere radius (planetScale).
+ *  - Distances between orbits are set by planetSpacing.
+ *  - The Moon orbits Earth with its own moonSpacing & moonScale.
+ *  - Everything rotates (spins) at rotateSpeed and revolves at revolveSpeed.
+ *  - No real astronomy data is used; purely for demonstration & easy tweaking.
+ *****************************************************************************/
 
-// ============ Scene, Camera, Renderer ============
-const scene = new THREE.Scene();
-
-const camera = new THREE.PerspectiveCamera(
-  75,
-  window.innerWidth / window.innerHeight,
-  0.1,
-  3000000
-);
-// Position the camera so the entire system is visible.
-// (You may need to adjust these values based on your scene scale.)
-camera.position.set(0, 1000, 250000);
-camera.lookAt(0, 0, 0);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-renderer.domElement.style.position = 'fixed';
-renderer.domElement.style.top = '0';
-renderer.domElement.style.left = '0';
-renderer.domElement.style.width = '100%';
-renderer.domElement.style.height = '100%';
-renderer.domElement.style.zIndex = '-1';
-
-// ============ Sky Dome (Background) ============
-const skyTexture = new THREE.TextureLoader().load('./assets/space_bg.jpg');
-const skyGeometry = new THREE.SphereGeometry(1500000, 32, 32);
-const skyMaterial = new THREE.MeshBasicMaterial({
-  map: skyTexture,
-  side: THREE.BackSide,
-  depthWrite: false,
-  depthTest: false
-});
-const skyDome = new THREE.Mesh(skyGeometry, skyMaterial);
-scene.add(skyDome);
-
-// ============ Lighting ============
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-scene.add(ambientLight);
-
-const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-directionalLight.position.set(100, 100, 50);
-scene.add(directionalLight);
-
-// ============ Orbit Controls ============
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.1;
-controls.minDistance = 500;
-controls.maxDistance = 3000000;
-
-// ============ Solar System Data ============
-// Note: We keep the original data for names, file names, real radii,
-// rotation period, etc. (These values can be adjusted if desired.)
-const solarSystemData = [
-  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitPeriodDays: 0,     rotationPeriodHours: 648,   url: 'https://example.com/sun' },
-  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitPeriodDays: 88,    rotationPeriodHours: 1408,  url: 'https://example.com/mercury' },
-  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitPeriodDays: 225,   rotationPeriodHours: -5832, url: 'https://example.com/venus' },
-  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitPeriodDays: 365,   rotationPeriodHours: 24,    url: 'https://example.com/earth' },
-  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitPeriodDays: 687,   rotationPeriodHours: 24.6,  url: 'https://example.com/mars' },
-  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitPeriodDays: 4333,  rotationPeriodHours: 10,    url: 'https://example.com/jupiter' },
-  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitPeriodDays: 10759, rotationPeriodHours: 10.7,  url: 'https://example.com/saturn' },
-  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitPeriodDays: 30687, rotationPeriodHours: -17,   url: 'https://example.com/uranus' },
-  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitPeriodDays: 60190, rotationPeriodHours: 16,    url: 'https://example.com/neptune' },
-  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitPeriodDays: 90560, rotationPeriodHours: 153.3, url: 'https://example.com/pluto' }
-];
-
-const moonData = {
-  name: "Moon",
-  file: "moon.glb",
-  radius: 1737,
-  orbitDistanceKm: 384400,
-  orbitPeriodDays: 27,
-  rotationPeriodHours: 655,
-  url: 'https://example.com/moon'
-};
-
-// ============ Predetermined Orbit Distances (scene units) ============
-// These distances are arbitrary scene units chosen to space out the planets.
-// Adjust these values as desired.
-const planetDistances = {
-  "Mercury": 20000,
-  "Venus":   40000,
-  "Earth":   60000,
-  "Mars":    80000,
-  "Jupiter": 150000,
-  "Saturn":  180000,
-  "Uranus":  210000,
-  "Neptune": 240000,
-  "Pluto":   270000
-};
-
-// Set the Sun’s desired radius in scene units.
-const sunDesiredRadius = 3000;
-// Compute a fixed scale factor for the Sun model:
-const sunScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
-// For other planets, we can use a modest exaggeration.
-const planetSizeExaggeration = 3;
-
-// For the Moon, we keep a simple scale.
-const moonOrbitScale = 0.02;
-
-// ============ Loaders and Containers ============
-const loader = new GLTFLoader();
-const solarSystemGroup = new THREE.Group();
-scene.add(solarSystemGroup);
-
-const planetPivots = {};
-const planetMeshes = [];
-
-// ============ Helper Functions ============
-function recenterModel(model) {
-  const box = new THREE.Box3().setFromObject(model);
-  const center = new THREE.Vector3();
-  box.getCenter(center);
-  model.position.sub(center);
-  return model;
-}
-
-// Draw an orbit ring at the given distance.
-function drawOrbitPath(distance) {
-  const segments = 128;
-  const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.2, transparent: true });
-  const geometry = new THREE.BufferGeometry();
-  const points = [];
-  for (let i = 0; i <= segments; i++) {
-    const theta = (i / segments) * Math.PI * 2;
-    points.push(new THREE.Vector3(distance * Math.cos(theta), 0, distance * Math.sin(theta)));
-  }
-  geometry.setFromPoints(points);
-  const orbitLine = new THREE.Line(geometry, material);
-  scene.add(orbitLine);
-}
-
-// ============ Load Celestial Bodies ============
-function loadPlanet(data) {
-  const pivot = new THREE.Group();
-  planetPivots[data.name] = pivot;
-  if (data.name !== 'Sun') {
-    // Start with a random revolution angle.
-    pivot.rotation.y = Math.random() * Math.PI * 2;
-  }
-  solarSystemGroup.add(pivot);
-
-  loader.load(`./assets/${data.file}`, (gltf) => {
-    let model = gltf.scene;
-    model = recenterModel(model);
-
-    if (data.name === "Sun") {
-      // Scale and position the Sun at the center.
-      model.scale.set(sunScaleFactor, sunScaleFactor, sunScaleFactor);
-      model.position.set(0, 0, 0);
-      pivot.add(model);
-      // Make the Sun emissive.
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.material.emissive = new THREE.Color(0xffff00);
-          child.material.emissiveIntensity = 2.0;
+// ===================== Parameters to Tweak =====================
+const planetNames = [
+    "Sun", "Mercury", "Venus", "Earth", "Mars", 
+    "Jupiter", "Saturn", "Uranus", "Neptune"
+  ];
+  // If you want Pluto, just add it to the array.
+  
+  const planetScale = 5;     // Sphere radius for all (Sun & Planets)
+  const planetSpacing = 50;  // Distance between orbits
+  const revolveSpeed = 0.02; // How fast they orbit the Sun
+  const rotateSpeed = 0.02;  // How fast each planet (and Sun) spins on its axis
+  
+  // Earth-Moon
+  const moonScale = 3;       // The Moon's radius, separate from planetScale
+  const moonSpacing = 10;    // Distance from Earth
+  const moonRevolveSpeed = 0.05; // How fast the Moon orbits Earth
+  const moonRotateSpeed = 0.03;  // How fast the Moon spins on its own axis
+  
+  // ===================== Basic Three.js Setup =====================
+  import * as THREE from './three.module.js';
+  import { OrbitControls } from './OrbitControls.js';
+  
+  // Scene, Camera, Renderer
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    10000
+  );
+  // Position the camera so you can see everything
+  camera.position.set(0, 100, 300);
+  camera.lookAt(0, 0, 0);
+  
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+  renderer.domElement.style.position = 'fixed';
+  renderer.domElement.style.top = '0';
+  renderer.domElement.style.left = '0';
+  renderer.domElement.style.width = '100%';
+  renderer.domElement.style.height = '100%';
+  renderer.domElement.style.zIndex = '-1';
+  
+  // Orbit Controls
+  const controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+  controls.minDistance = 50;
+  controls.maxDistance = 5000;
+  
+  // Simple ambient light so we can see
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  
+  // Optional directional light
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+  dirLight.position.set(10, 10, 10);
+  scene.add(dirLight);
+  
+  // ===================== Create Geometry & Materials =====================
+  // We’ll reuse a single sphere geometry for all bodies
+  const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
+  
+  // A single mesh material for all bodies (MeshStandardMaterial or MeshLambertMaterial etc.)
+  const planetMat = new THREE.MeshStandardMaterial({ color: 0x88ccff }); 
+  // ^ color can be changed or randomized. 
+  // For the Sun, we might pick a different color or tweak emission, but let's keep it simple.
+  
+  
+  // ===================== Data Structures =====================
+  
+  // We'll store each planet's pivot (for revolution) and the mesh (for rotation).
+  // Also the Moon pivot & mesh for Earth.
+  const planetPivots = {};
+  const planetMeshes = {};
+  let moonPivot = null;
+  let moonMesh = null;
+  
+  // ===================== Create the Sun + Planets =====================
+  function createPlanets() {
+    for (let i = 0; i < planetNames.length; i++) {
+      const name = planetNames[i];
+      
+      // A group pivot for revolve
+      const pivot = new THREE.Group();
+      scene.add(pivot);
+      planetPivots[name] = pivot;
+      
+      // Create sphere mesh 
+      const mesh = new THREE.Mesh(sphereGeo, planetMat.clone());
+      mesh.scale.set(planetScale, planetScale, planetScale); 
+      // We can differentiate the Sun with a color or scale if you like:
+      if (name === "Sun") {
+        mesh.material.color.set(0xffcc00); 
+        // Make the Sun bigger if you want:
+        // mesh.scale.multiplyScalar(2); 
+        pivot.rotation.y = 0; // The Sun won't revolve around anything
+        mesh.position.set(0, 0, 0);
+        pivot.add(mesh);
+        planetMeshes[name] = mesh;
+      } else {
+        // For planets, place them at an orbit radius of (i * planetSpacing)
+        // The first planet after "Sun" is index 1 => orbit radius = 1 * planetSpacing
+        const orbitRadius = i * planetSpacing;
+        mesh.position.set(orbitRadius, 0, 0);
+        pivot.add(mesh);
+        planetMeshes[name] = mesh;
+        
+        // If this is Earth, we create the Moon pivot & mesh
+        if (name === "Earth") {
+          moonPivot = new THREE.Group();
+          pivot.add(moonPivot);
+          
+          // Position the moon pivot at Earth’s position
+          moonPivot.position.set(orbitRadius, 0, 0);
+  
+          // Create the Moon mesh
+          moonMesh = new THREE.Mesh(sphereGeo, planetMat.clone());
+          moonMesh.material.color.set(0xffffff);
+          moonMesh.scale.set(moonScale, moonScale, moonScale);
+          // Place the Moon at moonSpacing from Earth
+          moonMesh.position.set(moonSpacing, 0, 0);
+          moonPivot.add(moonMesh);
         }
-      });
-      // Add a point light at the Sun.
-      const sunLight = new THREE.PointLight(0xffffff, 3, 1000000);
-      sunLight.position.set(0, 0, 0);
-      pivot.add(sunLight);
-    } else {
-      // For planets, use the predetermined distances.
-      const orbitDistance = planetDistances[data.name] || 60000; // default to 60,000 if not specified
-      // Scale the planet model (using its real radius scaled modestly).
-      const scaleFactor = (data.radius * sunScaleFactor / solarSystemData[0].radius) * planetSizeExaggeration;
-      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-      // Position the planet at (orbitDistance, 0, 0).
-      model.position.set(orbitDistance, 0, 0);
-      pivot.add(model);
-      // Save the orbit distance and period for revolution.
-      pivot.userData = {
-        orbitDistance: orbitDistance,
-        orbitPeriodDays: data.orbitPeriodDays
-      };
-      model.userData = {
-        name: data.name,
-        rotationPeriodHours: data.rotationPeriodHours,
-        url: data.url
-      };
-      planetMeshes.push(model);
-      // Draw the orbit ring.
-      drawOrbitPath(orbitDistance);
-      // For Earth, attach the Moon.
-      if (data.name === "Earth") {
-        loadMoon(pivot, model.position);
       }
     }
-    console.log(`${data.name} loaded.`);
-  }, undefined, (error) => {
-    console.error(`Error loading ${data.name}:`, error);
-  });
-}
-
-function loadMoon(earthPivot, earthPosition) {
-  const moonPivot = new THREE.Group();
-  earthPivot.add(moonPivot);
-  moonPivot.position.copy(earthPosition);
-
-  loader.load(`./assets/${moonData.file}`, (gltfMoon) => {
-    let moonModel = gltfMoon.scene;
-    moonModel = recenterModel(moonModel);
-    const moonScale = ((moonData.radius * sunScaleFactor / solarSystemData[0].radius) * planetSizeExaggeration);
-    moonModel.scale.set(moonScale, moonScale, moonScale);
-    // Position the Moon relative to Earth using a fixed gap.
-    const moonOrbitDistance = moonData.orbitDistanceKm * moonOrbitScale;
-    moonModel.position.set(moonOrbitDistance, 0, 0);
-    moonPivot.add(moonModel);
-    moonPivot.userData = {
-      orbitPeriodDays: moonData.orbitPeriodDays
-    };
-    moonModel.userData = {
-      name: moonData.name,
-      rotationPeriodHours: moonData.rotationPeriodHours,
-      url: moonData.url
-    };
-    planetMeshes.push(moonModel);
-    console.log("Moon loaded.");
-  });
-}
-
-// Load all planets.
-solarSystemData.forEach((planetInfo) => {
-  loadPlanet(planetInfo);
-});
-
-// Draw a Kuiper Belt ring as a visual reference.
-// We set a fixed distance for the Kuiper Belt (e.g., 350,000 units).
-const kuiperDistance = 350000;
-const kuiperGeometry = new THREE.RingGeometry(kuiperDistance - 50000, kuiperDistance + 50000, 256);
-const kuiperMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, opacity: 0.3, transparent: true });
-const kuiperRing = new THREE.Mesh(kuiperGeometry, kuiperMaterial);
-kuiperRing.rotation.x = Math.PI / 2;
-scene.add(kuiperRing);
-
-// ============ Raycaster & HUD ============
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-
-let planetDetails = document.getElementById('planet-details');
-if (!planetDetails) {
-  planetDetails = document.createElement('div');
-  planetDetails.id = 'planet-details';
-  planetDetails.style.position = 'absolute';
-  planetDetails.style.top = '100px';
-  planetDetails.style.left = '50px';
-  planetDetails.style.color = '#fff';
-  planetDetails.style.background = 'rgba(0,0,0,0.7)';
-  planetDetails.style.padding = '10px';
-  planetDetails.style.display = 'none';
-  document.body.appendChild(planetDetails);
-}
-
-let tooltip = document.getElementById('tooltip');
-if (!tooltip) {
-  tooltip = document.createElement('div');
-  tooltip.id = 'tooltip';
-  tooltip.style.position = 'absolute';
-  tooltip.style.color = '#fff';
-  tooltip.style.background = 'rgba(0,0,0,0.7)';
-  tooltip.style.padding = '5px';
-  tooltip.style.opacity = 0;
-  tooltip.style.pointerEvents = 'none';
-  document.body.appendChild(tooltip);
-}
-
-document.addEventListener('pointermove', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(planetMeshes, true);
-  
-  if (intersects.length > 0) {
-    const hovered = intersects[0].object;
-    tooltip.style.opacity = 1;
-    tooltip.style.left = `${event.clientX + 10}px`;
-    tooltip.style.top = `${event.clientY + 10}px`;
-    tooltip.innerHTML = `<strong>${hovered.userData.name}</strong>`;
-  } else {
-    tooltip.style.opacity = 0;
   }
-});
-
-document.addEventListener('pointerdown', (event) => {
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
   
-  raycaster.setFromCamera(mouse, camera);
-  const intersects = raycaster.intersectObjects(planetMeshes, true);
+  // ===================== Initialize Everything =====================
+  createPlanets();
   
-  if (intersects.length > 0) {
-    const selected = intersects[0].object;
-    flyToPlanet(selected);
-  } else {
-    planetDetails.style.display = 'none';
-  }
-});
-
-// ============ Click-to-Zoom & HUD ============
-function flyToPlanet(planetMesh) {
-  const planetPos = planetMesh.getWorldPosition(new THREE.Vector3());
-  const direction = planetPos.clone().sub(camera.position).normalize();
-  // Use a small offset so the planet is centered.
-  const distance = 500;
-  const newCameraPos = planetPos.clone().sub(direction.multiplyScalar(distance));
-  
-  new TWEEN.Tween(camera.position)
-    .to({ x: newCameraPos.x, y: newCameraPos.y, z: newCameraPos.z }, 2000)
-    .easing(TWEEN.Easing.Quadratic.Out)
-    .onUpdate(() => {
-      camera.lookAt(planetPos);
-      controls.target.copy(planetPos);
-    })
-    .onComplete(() => {
-      showPlanetDetails(planetMesh.userData);
-    })
-    .start();
-}
-
-function showPlanetDetails(data) {
-  planetDetails.innerHTML = `
-    <h2>${data.name}</h2>
-    <p>Rotation Period: ${Math.abs(data.rotationPeriodHours)} hour${Math.abs(data.rotationPeriodHours) !== 1 ? 's' : ''}${data.rotationPeriodHours < 0 ? ' (retrograde)' : ''}</p>
-    <p>Learn more about ${data.name}:</p>
-    <a href="${data.url}" target="_blank" style="color:#00fffc; text-decoration:underline;">Open Link</a>
-  `;
-  planetDetails.style.display = 'block';
-}
-
-// ============ Animation Loop ============
-const clock = new THREE.Clock();
-function animate() {
-  requestAnimationFrame(animate);
-  
-  const delta = clock.getDelta();
-  
-  // Revolution: Rotate each planet's pivot.
-  for (const name in planetPivots) {
-    const pivot = planetPivots[name];
-    if (pivot.userData.orbitPeriodDays && pivot.userData.orbitPeriodDays > 0) {
-      const revolveSpeed = (delta * 0.5) / pivot.userData.orbitPeriodDays;
-      pivot.rotation.y += revolveSpeed;
+  // ===================== Animation Loop =====================
+  function animate() {
+    requestAnimationFrame(animate);
+    
+    // 1) revolve each planet around the Sun
+    // We'll revolve each planet pivot. The Sun pivot won't revolve, so that's fine.
+    for (let i = 0; i < planetNames.length; i++) {
+      const name = planetNames[i];
+      if (name === "Sun") continue; // skip the Sun
+      
+      const pivot = planetPivots[name];
+      // revolve pivot on Y axis
+      pivot.rotation.y += revolveSpeed; 
     }
-  }
-  
-  // Rotation: Spin each planet and the Moon on its axis.
-  planetMeshes.forEach((mesh) => {
-    const { rotationPeriodHours } = mesh.userData;
-    if (rotationPeriodHours && rotationPeriodHours !== 0) {
-      const spinFactor = 2.0;
-      const spinSpeed = (spinFactor * delta * (2 * Math.PI)) / Math.abs(rotationPeriodHours);
-      mesh.rotation.y += (rotationPeriodHours > 0 ? spinSpeed : -spinSpeed);
+    
+    // revolve the Moon around Earth
+    if (moonPivot) {
+      moonPivot.rotation.y += moonRevolveSpeed;
     }
+  
+    // 2) rotate each planet (and the Sun) on its axis
+    for (let i = 0; i < planetNames.length; i++) {
+      const name = planetNames[i];
+      const mesh = planetMeshes[name];
+      mesh.rotation.y += rotateSpeed;
+    }
+    // rotate the Moon on its axis
+    if (moonMesh) {
+      moonMesh.rotation.y += moonRotateSpeed;
+    }
+  
+    controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
+  
+  // ===================== Resize Handling =====================
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
   });
   
-  // Keep the sky dome centered on the camera.
-  skyDome.position.copy(camera.position);
-  
-  TWEEN.update();
-  controls.update();
-  renderer.render(scene, camera);
-}
-animate();
-
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
