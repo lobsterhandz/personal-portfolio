@@ -87,9 +87,9 @@ const planetSizeExaggeration = 3;
 // For outer planets, use a larger multiplier.
 function computeOrbitDistance(orbitAU) {
   if (orbitAU <= 2) {
-    return orbitAU * 175000; // inner scaling
+    return orbitAU * 275000; // inner scaling
   } else {
-    return orbitAU * 275000; // outer scaling for gas giants, etc.
+    return orbitAU * 175000; // outer scaling for gas giants, etc.
   }
 }
 
