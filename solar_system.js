@@ -1,7 +1,7 @@
 import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
-// Ensure TWEEN is loaded via a script tag or import if needed
+// Make sure TWEEN is loaded via a script tag
 
 // ============ Scene, Camera, Renderer ============
 const scene = new THREE.Scene();
@@ -10,9 +10,9 @@ const camera = new THREE.PerspectiveCamera(
   75,
   window.innerWidth / window.innerHeight,
   0.1,
-  3000000  // extended far plane for the huge outer orbits
+  3000000
 );
-// Position the camera so the entire system (and Kuiper belt ring) is visible.
+// Position the camera to see the entire system.
 camera.position.set(0, 1000, 250000);
 camera.lookAt(0, 0, 0);
 
@@ -78,23 +78,21 @@ const moonData = {
 };
 
 // ============ Scaling Factors ============
-// For the Sun, we want it to be prominent. We'll set a fixed desired size.
-const sunDesiredRadius = 1000;
+const sunDesiredRadius = 1000; // Make the Sun prominent.
 const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
 const planetSizeExaggeration = 3;
 
-// We use a piecewise orbit-distance function.
-// For inner planets (AU <= 3), we use a logarithmic function.
-// For outer planets (AU > 3), we use a power function for wider spacing.
+// New piecewise orbit-distance function:
+// For inner planets (orbitAU ≤ 2), spread them linearly.
+// For outer planets, use a larger multiplier.
 function computeOrbitDistance(orbitAU) {
-  if (orbitAU <= 3) {
-    return Math.log(1 + orbitAU) * 15000;  // inner scale
+  if (orbitAU <= 2) {
+    return orbitAU * 25000; // inner scaling
   } else {
-    return Math.pow(orbitAU, 1.1) * 30000;  // outer scale
+    return orbitAU * 70000; // outer scaling for gas giants, etc.
   }
 }
 
-// For the Moon, we use a simple scale.
 const moonOrbitScale = 0.02;
 
 // ============ Loaders and Containers ============
@@ -102,7 +100,6 @@ const loader = new GLTFLoader();
 const solarSystemGroup = new THREE.Group();
 scene.add(solarSystemGroup);
 
-// We'll store references for each planet's pivot (for revolution) and mesh (for rotation & raycasting).
 const planetPivots = {};
 const planetMeshes = [];
 
@@ -134,7 +131,7 @@ function loadPlanet(data) {
   const pivot = new THREE.Group();
   planetPivots[data.name] = pivot;
   if (data.name !== 'Sun') {
-    // Random starting revolution angle
+    // Random initial revolution angle
     pivot.rotation.y = Math.random() * Math.PI * 2;
   }
   solarSystemGroup.add(pivot);
@@ -148,8 +145,7 @@ function loadPlanet(data) {
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
       model.position.set(0, 0, 0);
       pivot.add(model);
-
-      // Ensure the Sun appears bright and prominent
+      // Make the Sun emissive
       model.traverse((child) => {
         if (child.isMesh) {
           child.material.emissive = new THREE.Color(0xffff00);
@@ -220,9 +216,8 @@ solarSystemData.forEach((planetInfo) => {
   loadPlanet(planetInfo);
 });
 
-// Draw a Kuiper Belt ring for reference (e.g., from 45 AU to 55 AU in our scaled system)
-// We'll compute the mid-point using our outer function. Use an average AU value.
-const kuiperMidAU = 50;
+// Draw a Kuiper Belt ring as a visual reference
+const kuiperMidAU = 50; // average AU value for the Kuiper Belt
 const kuiperRadius = computeOrbitDistance(kuiperMidAU);
 const kuiperGeometry = new THREE.RingGeometry(kuiperRadius - 50000, kuiperRadius + 50000, 256);
 const kuiperMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, opacity: 0.3, transparent: true });
@@ -233,6 +228,7 @@ scene.add(kuiperRing);
 // ============ Raycaster & HUD ============
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
+
 let planetDetails = document.getElementById('planet-details');
 if (!planetDetails) {
   planetDetails = document.createElement('div');
@@ -297,7 +293,7 @@ document.addEventListener('pointerdown', (event) => {
 function flyToPlanet(planetMesh) {
   const planetPos = planetMesh.getWorldPosition(new THREE.Vector3());
   const direction = planetPos.clone().sub(camera.position).normalize();
-  // Stop closer than before so the planet fills the view.
+  // Use a smaller offset so the planet is centered in view.
   const distance = 500;
   const newCameraPos = planetPos.clone().sub(direction.multiplyScalar(distance));
   
@@ -331,27 +327,26 @@ function animate() {
   
   const delta = clock.getDelta();
   
-  // Revolution: Rotate each planet's pivot (if it has an orbitPeriodDays).
+  // Revolution: Rotate each planet pivot (if it has an orbitPeriodDays)
   for (const name in planetPivots) {
     const pivot = planetPivots[name];
     if (pivot.userData.orbitPeriodDays && pivot.userData.orbitPeriodDays > 0) {
-      // Multiply the speed factor for visible revolution.
       const revolveSpeed = (delta * 0.5) / pivot.userData.orbitPeriodDays;
       pivot.rotation.y += revolveSpeed;
     }
   }
   
-  // Rotation: Spin each planet (and Moon) on its axis.
+  // Rotation: Spin each planet and the Moon on its axis.
   planetMeshes.forEach((mesh) => {
     const { rotationPeriodHours } = mesh.userData;
     if (rotationPeriodHours && rotationPeriodHours !== 0) {
-      const spinFactor = 2.0; // adjust for visible spin
+      const spinFactor = 2.0;
       const spinSpeed = (spinFactor * delta * (2 * Math.PI)) / Math.abs(rotationPeriodHours);
       mesh.rotation.y += (rotationPeriodHours > 0 ? spinSpeed : -spinSpeed);
     }
   });
   
-  // Keep the sky dome centered on the camera.
+  // Keep sky dome centered on the camera.
   skyDome.position.copy(camera.position);
   
   TWEEN.update();
