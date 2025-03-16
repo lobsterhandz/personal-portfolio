@@ -1,7 +1,7 @@
 import * as THREE from './three.module.js';
 import { OrbitControls } from './OrbitControls.js';
 import { GLTFLoader } from './GLTFLoader.js';
-// Make sure TWEEN is loaded via a script tag
+// Ensure TWEEN is loaded via a script tag if you later want tweening
 
 // ============ Scene, Camera, Renderer ============
 const scene = new THREE.Scene();
@@ -12,8 +12,8 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   3000000
 );
-// Position the camera to see the entire system.
-camera.far = 4000000; // increase far clipping distance
+// Position the camera so the entire system is visible.
+// (You may need to adjust these values based on your scene scale.)
 camera.position.set(0, 1000, 250000);
 camera.lookAt(0, 0, 0);
 
@@ -55,17 +55,19 @@ controls.minDistance = 500;
 controls.maxDistance = 3000000;
 
 // ============ Solar System Data ============
+// Note: We keep the original data for names, file names, real radii,
+// rotation period, etc. (These values can be adjusted if desired.)
 const solarSystemData = [
-  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitAU: 0,    orbitPeriodDays: 0,     rotationPeriodHours: 648,   url: 'https://example.com/sun' },
-  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitAU: 0.39, orbitPeriodDays: 88,    rotationPeriodHours: 1408,  url: 'https://example.com/mercury' },
-  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitAU: 0.72, orbitPeriodDays: 225,   rotationPeriodHours: -5832, url: 'https://example.com/venus' },
-  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitAU: 1,    orbitPeriodDays: 365,   rotationPeriodHours: 24,    url: 'https://example.com/earth' },
-  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitAU: 1.52, orbitPeriodDays: 687,   rotationPeriodHours: 24.6,  url: 'https://example.com/mars' },
-  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitAU: 5.2,  orbitPeriodDays: 4333,  rotationPeriodHours: 10,    url: 'https://example.com/jupiter' },
-  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitAU: 9.54, orbitPeriodDays: 10759, rotationPeriodHours: 10.7,  url: 'https://example.com/saturn' },
-  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitAU: 19.2, orbitPeriodDays: 30687, rotationPeriodHours: -17,   url: 'https://example.com/uranus' },
-  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitAU: 30.1, orbitPeriodDays: 60190, rotationPeriodHours: 16,    url: 'https://example.com/neptune' },
-  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitAU: 39.5, orbitPeriodDays: 90560, rotationPeriodHours: 153.3, url: 'https://example.com/pluto' }
+  { name: "Sun",     file: "sun.glb",     radius: 696340, orbitPeriodDays: 0,     rotationPeriodHours: 648,   url: 'https://example.com/sun' },
+  { name: "Mercury", file: "mercury.glb", radius: 2439,   orbitPeriodDays: 88,    rotationPeriodHours: 1408,  url: 'https://example.com/mercury' },
+  { name: "Venus",   file: "venus.glb",   radius: 6052,   orbitPeriodDays: 225,   rotationPeriodHours: -5832, url: 'https://example.com/venus' },
+  { name: "Earth",   file: "earth.glb",   radius: 6371,   orbitPeriodDays: 365,   rotationPeriodHours: 24,    url: 'https://example.com/earth' },
+  { name: "Mars",    file: "mars.glb",    radius: 3390,   orbitPeriodDays: 687,   rotationPeriodHours: 24.6,  url: 'https://example.com/mars' },
+  { name: "Jupiter", file: "jupiter.glb", radius: 69911,  orbitPeriodDays: 4333,  rotationPeriodHours: 10,    url: 'https://example.com/jupiter' },
+  { name: "Saturn",  file: "saturn.glb",  radius: 58232,  orbitPeriodDays: 10759, rotationPeriodHours: 10.7,  url: 'https://example.com/saturn' },
+  { name: "Uranus",  file: "uranus.glb",  radius: 25362,  orbitPeriodDays: 30687, rotationPeriodHours: -17,   url: 'https://example.com/uranus' },
+  { name: "Neptune", file: "neptune.glb", radius: 24622,  orbitPeriodDays: 60190, rotationPeriodHours: 16,    url: 'https://example.com/neptune' },
+  { name: "Pluto",   file: "pluto.glb",   radius: 1188,   orbitPeriodDays: 90560, rotationPeriodHours: 153.3, url: 'https://example.com/pluto' }
 ];
 
 const moonData = {
@@ -78,25 +80,29 @@ const moonData = {
   url: 'https://example.com/moon'
 };
 
-// ============ Scaling Factors ============
-const sunDesiredRadius = 1000; // Make the Sun prominent.
-const radiusScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
+// ============ Predetermined Orbit Distances (scene units) ============
+// These distances are arbitrary scene units chosen to space out the planets.
+// Adjust these values as desired.
+const planetDistances = {
+  "Mercury": 20000,
+  "Venus":   40000,
+  "Earth":   60000,
+  "Mars":    80000,
+  "Jupiter": 150000,
+  "Saturn":  180000,
+  "Uranus":  210000,
+  "Neptune": 240000,
+  "Pluto":   270000
+};
+
+// Set the Sun’s desired radius in scene units.
+const sunDesiredRadius = 3000;
+// Compute a fixed scale factor for the Sun model:
+const sunScaleFactor = sunDesiredRadius / solarSystemData[0].radius;
+// For other planets, we can use a modest exaggeration.
 const planetSizeExaggeration = 3;
 
-// New piecewise orbit-distance function:
-// For inner planets (orbitAU ≤ 2), spread them linearly.
-// For outer planets, use a larger multiplier.
-function computeOrbitDistance(orbitAU) {
-    if (orbitAU < 1) {
-      return orbitAU * 500000; // dramatically widen the very inner circle
-    } else if (orbitAU <= 2) {
-      return orbitAU * 275000; // inner scaling for the next inner planets
-    } else {
-      return orbitAU * 175000; // outer scaling for gas giants, etc.
-    }
-  }
-  
-
+// For the Moon, we keep a simple scale.
 const moonOrbitScale = 0.02;
 
 // ============ Loaders and Containers ============
@@ -116,6 +122,7 @@ function recenterModel(model) {
   return model;
 }
 
+// Draw an orbit ring at the given distance.
 function drawOrbitPath(distance) {
   const segments = 128;
   const material = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.2, transparent: true });
@@ -135,7 +142,7 @@ function loadPlanet(data) {
   const pivot = new THREE.Group();
   planetPivots[data.name] = pivot;
   if (data.name !== 'Sun') {
-    // Random initial revolution angle
+    // Start with a random revolution angle.
     pivot.rotation.y = Math.random() * Math.PI * 2;
   }
   solarSystemGroup.add(pivot);
@@ -145,26 +152,31 @@ function loadPlanet(data) {
     model = recenterModel(model);
 
     if (data.name === "Sun") {
-      const scaleFactor = sunDesiredRadius / data.radius;
-      model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+      // Scale and position the Sun at the center.
+      model.scale.set(sunScaleFactor, sunScaleFactor, sunScaleFactor);
       model.position.set(0, 0, 0);
       pivot.add(model);
-      // Make the Sun emissive
+      // Make the Sun emissive.
       model.traverse((child) => {
         if (child.isMesh) {
           child.material.emissive = new THREE.Color(0xffff00);
           child.material.emissiveIntensity = 2.0;
         }
       });
+      // Add a point light at the Sun.
       const sunLight = new THREE.PointLight(0xffffff, 3, 1000000);
       sunLight.position.set(0, 0, 0);
       pivot.add(sunLight);
     } else {
-      const scaleFactor = (data.radius * radiusScaleFactor) * planetSizeExaggeration;
+      // For planets, use the predetermined distances.
+      const orbitDistance = planetDistances[data.name] || 60000; // default to 60,000 if not specified
+      // Scale the planet model (using its real radius scaled modestly).
+      const scaleFactor = (data.radius * sunScaleFactor / solarSystemData[0].radius) * planetSizeExaggeration;
       model.scale.set(scaleFactor, scaleFactor, scaleFactor);
-      const orbitDistance = computeOrbitDistance(data.orbitAU);
+      // Position the planet at (orbitDistance, 0, 0).
       model.position.set(orbitDistance, 0, 0);
       pivot.add(model);
+      // Save the orbit distance and period for revolution.
       pivot.userData = {
         orbitDistance: orbitDistance,
         orbitPeriodDays: data.orbitPeriodDays
@@ -175,9 +187,8 @@ function loadPlanet(data) {
         url: data.url
       };
       planetMeshes.push(model);
-      if (data.orbitAU > 0) {
-        drawOrbitPath(orbitDistance);
-      }
+      // Draw the orbit ring.
+      drawOrbitPath(orbitDistance);
       // For Earth, attach the Moon.
       if (data.name === "Earth") {
         loadMoon(pivot, model.position);
@@ -197,8 +208,9 @@ function loadMoon(earthPivot, earthPosition) {
   loader.load(`./assets/${moonData.file}`, (gltfMoon) => {
     let moonModel = gltfMoon.scene;
     moonModel = recenterModel(moonModel);
-    const moonScale = ((moonData.radius * radiusScaleFactor) * planetSizeExaggeration);
+    const moonScale = ((moonData.radius * sunScaleFactor / solarSystemData[0].radius) * planetSizeExaggeration);
     moonModel.scale.set(moonScale, moonScale, moonScale);
+    // Position the Moon relative to Earth using a fixed gap.
     const moonOrbitDistance = moonData.orbitDistanceKm * moonOrbitScale;
     moonModel.position.set(moonOrbitDistance, 0, 0);
     moonPivot.add(moonModel);
@@ -215,15 +227,15 @@ function loadMoon(earthPivot, earthPosition) {
   });
 }
 
-// Load all planets
+// Load all planets.
 solarSystemData.forEach((planetInfo) => {
   loadPlanet(planetInfo);
 });
 
-// Draw a Kuiper Belt ring as a visual reference
-const kuiperMidAU = 50; // average AU value for the Kuiper Belt
-const kuiperRadius = computeOrbitDistance(kuiperMidAU);
-const kuiperGeometry = new THREE.RingGeometry(kuiperRadius - 50000, kuiperRadius + 50000, 256);
+// Draw a Kuiper Belt ring as a visual reference.
+// We set a fixed distance for the Kuiper Belt (e.g., 350,000 units).
+const kuiperDistance = 350000;
+const kuiperGeometry = new THREE.RingGeometry(kuiperDistance - 50000, kuiperDistance + 50000, 256);
 const kuiperMaterial = new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.DoubleSide, opacity: 0.3, transparent: true });
 const kuiperRing = new THREE.Mesh(kuiperGeometry, kuiperMaterial);
 kuiperRing.rotation.x = Math.PI / 2;
@@ -297,7 +309,7 @@ document.addEventListener('pointerdown', (event) => {
 function flyToPlanet(planetMesh) {
   const planetPos = planetMesh.getWorldPosition(new THREE.Vector3());
   const direction = planetPos.clone().sub(camera.position).normalize();
-  // Use a smaller offset so the planet is centered in view.
+  // Use a small offset so the planet is centered.
   const distance = 500;
   const newCameraPos = planetPos.clone().sub(direction.multiplyScalar(distance));
   
@@ -331,7 +343,7 @@ function animate() {
   
   const delta = clock.getDelta();
   
-  // Revolution: Rotate each planet pivot (if it has an orbitPeriodDays)
+  // Revolution: Rotate each planet's pivot.
   for (const name in planetPivots) {
     const pivot = planetPivots[name];
     if (pivot.userData.orbitPeriodDays && pivot.userData.orbitPeriodDays > 0) {
@@ -350,7 +362,7 @@ function animate() {
     }
   });
   
-  // Keep sky dome centered on the camera.
+  // Keep the sky dome centered on the camera.
   skyDome.position.copy(camera.position);
   
   TWEEN.update();
